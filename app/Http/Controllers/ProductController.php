@@ -280,6 +280,12 @@ class ProductController extends Controller
                 'porcentaje_ganancia' => 'nullable|numeric',
                 'prioridad' => 'nullable|boolean',
                 'es_kit' => 'required|boolean',
+                'es_consumible' => 'required|boolean',
+                'tipo_consumible' => [
+                    'required_if:es_consumible,true',
+                    'in:' . implode(',', Product::tipos()),
+                ],
+                'usa_medidas' => 'required|boolean',
                 'perecedero' => 'nullable|boolean',
             ],
             [],
@@ -311,6 +317,13 @@ class ProductController extends Controller
         $newProduct->prioridad = $request->prioridad;
         $newProduct->porcentaje_ganancia = $request->porcentaje_ganancia;
         $newProduct->es_kit = $request->es_kit;
+        $newProduct->es_consumible = $request->es_consumible;
+        if ($newProduct->es_consumible) {
+            $newProduct->tipo_consumible = $request->tipo_consumible;
+        } else {
+            $newProduct->tipo_consumible = null;
+        }
+        $newProduct->usa_medidas = $request->usa_medidas;
         $newProduct->save();
 
         $precioAlmacens = [];
@@ -486,9 +499,31 @@ class ProductController extends Controller
             'porcentaje_ganancia' => 'nullable',
             'es_kit' => 'nullable|boolean',
             'perecedero' => 'nullable|boolean',
+            'tipo_consumible' => [
+                'required_if:es_consumible,true',
+                'in:' . implode(',', Product::tipos()),
+            ],
+            'usa_medidas' => 'required|boolean',
+            'perecedero' => 'nullable|boolean',
         ]);
 
-        $product->update($request->all());
+        $product->codigo = $request->codigo;
+        $product->name = $request->name;
+        $product->descripcion = $request->descripcion;
+        $product->tventa = $request->tventa;
+        $product->pcosto = $request->pcosto;
+        $product->prioridad = $request->prioridad;
+        $product->porcentaje_ganancia = $request->porcentaje_ganancia;
+        $product->es_kit = $request->es_kit;
+        $product->es_consumible = $request->es_consumible;
+        if ($product->es_consumible) {
+            $product->tipo_consumible = $request->tipo_consumible;
+        } else {
+            $product->tipo_consumible = null;
+        }
+        $product->usa_medidas = $request->usa_medidas;
+        $product->save();
+
         return $product;
     }
     public function generateDesktopProducts()
