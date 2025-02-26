@@ -16,10 +16,6 @@ class CreateProductComponentsTable extends Migration
         Schema::create('product_components', function (Blueprint $table) {
             $table->id();
 
-
-            // $table->unsignedBigInteger('organization_id')->nullable();
-            // $table->foreign('organization_id')->references('id')->on('organizations')->onDelete('set null');
-
             $table->unsignedBigInteger('product_id')->nullable(); //padre kit
             $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
 

@@ -14,6 +14,7 @@ use App\Models\Precio;
 use App\Models\PrecioHistorial;
 use App\Models\Product;
 use App\Models\ProductComponent;
+use App\Models\ProductConsumible;
 use App\Models\User;
 use App\MyClasses\ProductLogic;
 use DateInterval;
@@ -266,6 +267,18 @@ class ProductController extends Controller
             ['cantidad' => $cantidad]
         );
     }
+    public function agregarconsumible(Request $request)
+    {
+        $productActualId = request()->input('productActualId');
+        $productEncontradoId = request()->input('productEncontradoId');
+        $cantidad = request()->input('cantidad');
+        if ($productActualId == $productEncontradoId) {
+            throw new OperationalException("No es posible agregar un consumible, donde el producto base sea el mismo", 1);
+        }
+        ProductConsumible::updateOrCreate(
+            ['product_id' => $productActualId, 'consumible_id' => $productEncontradoId]
+        );
+    }
     public function store(Request $request, ProductLogic $pl)
     {
         $user = $request->user()->load('almacens');
@@ -415,10 +428,21 @@ class ProductController extends Controller
         $components = ProductComponent::with('product_hijo')->where('product_id', $product)->get();
         return $components;
     }
+    public function getconsumibles(Request $request)
+    {
+        $product = request()->input('productActualId');
+        $components = ProductConsumible::with('consumible')->where('product_id', $product)->get();
+        return $components;
+    }
     public function eliminarComponente(Request $request)
     {
         $componente = request()->input('componente');
         ProductComponent::destroy($componente);
+    }
+    public function eliminarConsumible(Request $request)
+    {
+        $componente = request()->input('componente');
+        ProductConsumible::destroy($componente);
     }
     public function historials(Request $request)
     {

@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class ProductComponent extends Model
+class ProductConsumible extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
     protected $guarded = [];
-    protected $with = ['product_hijo'];
+    protected $with = ['consumible'];
 
     //relacion uno a muchos inversa
 
@@ -20,7 +20,7 @@ class ProductComponent extends Model
         return $this->belongsTo('App\Models\Product');
     }
 
-    public function product_hijo()
+    public function consumible()
     {
 
         return $this->belongsTo('App\Models\Product');
