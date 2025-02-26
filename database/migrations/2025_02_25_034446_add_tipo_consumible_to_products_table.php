@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->enum('tipo_consumible', ['generico', 'especifico', 'regular'])->nullable();
-            $table->boolean("es_consumible");
-            $table->boolean("usa_medidas");
+            $table->boolean("es_consumible_generico")->nullable();
+            $table->boolean("necesita_produccion")->nullable();
+            $table->boolean("usa_medidas")->nullable();
         });
     }
 
@@ -24,8 +24,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->dropColumn("tipo_consumible");
-            $table->dropColumn("es_consumible");
+            $table->dropColumn("es_consumible_generico");
+            $table->dropColumn("necesita_produccion");
             $table->dropColumn("usa_medidas");
         });
     }

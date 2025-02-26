@@ -280,12 +280,9 @@ class ProductController extends Controller
                 'porcentaje_ganancia' => 'nullable|numeric',
                 'prioridad' => 'nullable|boolean',
                 'es_kit' => 'required|boolean',
-                'es_consumible' => 'required|boolean',
-                'tipo_consumible' => [
-                    'required_if:es_consumible,true',
-                    'in:' . implode(',', Product::tipos()),
-                ],
+                'es_consumible_generico' => 'required|boolean',
                 'usa_medidas' => 'required|boolean',
+                'necesita_produccion' => 'required|boolean',
                 'perecedero' => 'nullable|boolean',
             ],
             [],
@@ -317,12 +314,7 @@ class ProductController extends Controller
         $newProduct->prioridad = $request->prioridad;
         $newProduct->porcentaje_ganancia = $request->porcentaje_ganancia;
         $newProduct->es_kit = $request->es_kit;
-        $newProduct->es_consumible = $request->es_consumible;
-        if ($newProduct->es_consumible) {
-            $newProduct->tipo_consumible = $request->tipo_consumible;
-        } else {
-            $newProduct->tipo_consumible = null;
-        }
+        $newProduct->es_consumible_generico = $request->es_consumible_generico;
         $newProduct->usa_medidas = $request->usa_medidas;
         $newProduct->save();
 
@@ -498,13 +490,10 @@ class ProductController extends Controller
             'prioridad' => 'nullable|boolean',
             'porcentaje_ganancia' => 'nullable',
             'es_kit' => 'nullable|boolean',
-            'perecedero' => 'nullable|boolean',
-            'tipo_consumible' => [
-                'required_if:es_consumible,true',
-                'in:' . implode(',', Product::tipos()),
-            ],
+            // 'perecedero' => 'nullable|boolean',
             'usa_medidas' => 'required|boolean',
-            'perecedero' => 'nullable|boolean',
+            'es_consumible_generico' => 'required|boolean',
+            'necesita_produccion' => 'required|boolean',
         ]);
 
         $product->codigo = $request->codigo;
@@ -515,13 +504,9 @@ class ProductController extends Controller
         $product->prioridad = $request->prioridad;
         $product->porcentaje_ganancia = $request->porcentaje_ganancia;
         $product->es_kit = $request->es_kit;
-        $product->es_consumible = $request->es_consumible;
-        if ($product->es_consumible) {
-            $product->tipo_consumible = $request->tipo_consumible;
-        } else {
-            $product->tipo_consumible = null;
-        }
+        $product->es_consumible_generico = $request->es_consumible_generico;
         $product->usa_medidas = $request->usa_medidas;
+        $product->necesita_produccion = $request->necesita_produccion;
         $product->save();
 
         return $product;

@@ -19,24 +19,6 @@ class Product extends Model
     protected $guarded = [];
     protected $with = ['taxes', 'descuentos'];
 
-    // Enum values as constants
-    public const TIPO_GENERICO = 'generico';
-    public const TIPO_ESPECIFICO = 'especifico';
-    public const TIPO_REGULAR = 'regular';
-    public const TIPO_NULO = null;
-    // Helper to get valid types
-    public static function tipos(): array
-    {
-        return [
-            self::TIPO_GENERICO,
-            self::TIPO_ESPECIFICO,
-            self::TIPO_REGULAR,
-            self::TIPO_NULO,
-        ];
-    }
-
-
-
     //RELACIÓN UNO A MUCHOS
     public function codes()
     {
