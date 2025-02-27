@@ -431,8 +431,7 @@ class ProductController extends Controller
     public function getconsumibles(Request $request)
     {
         $product = request()->input('productActualId');
-        $components = ProductConsumible::with('consumible')->where('product_id', $product)->get();
-        return $components;
+        return ProductConsumible::with('consumible')->where('product_id', $product)->get();
     }
     public function eliminarComponente(Request $request)
     {

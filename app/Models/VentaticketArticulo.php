@@ -50,7 +50,7 @@ class VentaticketArticulo extends Model
     //metodos
     public function usesConsumable()
     {
-        $this->product->;
+        return $this->product->usesConsumable();
     }
     public function addCantidad($cantidad)
     {

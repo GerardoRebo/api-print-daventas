@@ -84,6 +84,7 @@ class Turno extends Model
             $this->incrementVentaEfectivo($ticketVenta->getTotal());
             $this->incrementEfectivoAlCierre($ticketVenta->getTotal());
         }
+        $ticketVenta->sendToProduction();
         $ticketVenta->notifyTienda();
     }
     function updateAcumulados()

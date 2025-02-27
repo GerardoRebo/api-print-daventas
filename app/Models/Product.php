@@ -206,7 +206,6 @@ class Product extends Model
         }
         $descuento * $cantidad;
     }
-    public static function getCantidadesArray() {}
     public function procesaAjusteCosto(User $user, $pcosto, $descripcion)
     {
         $productA = $this;
@@ -361,6 +360,9 @@ class Product extends Model
         if ($this->es_kit) {
             return $this->getCantidadActualKit($almacenId);
         }
+        if ($this->es_consumible_generico) {
+            return $this->getCantidadActualConsumibleGenerico($almacenId);
+        }
         return  InventarioBalance::where('product_id', $this->id)
             ->where('almacen_id', $almacenId)->value('cantidad_actual');
         return Cache::remember(
@@ -375,7 +377,7 @@ class Product extends Model
     public function usesConsumable()
     {
         foreach ($this->product_components as $component) {
-            if ($component->product_consumibles->count()) {
+            if ($component->product_hijo->product_consumibles->count()) {
                 return true;
             }
         }
@@ -390,6 +392,25 @@ class Product extends Model
             $inventario = $component->product_hijo->getCantidadActual($almacen);
             if (isset($inventario)) {
                 $cociente = $inventario / $component->cantidad;
+                array_push($cociente1, $cociente);
+            }
+        }
+        if (count($cociente1)) {
+            $cantidad = min($cociente1);
+        } else {
+            $cantidad = null;
+        }
+        return $cantidad;
+    }
+    public function getCantidadActualConsumibleGenerico($almacen)
+    {
+        $cociente1 = [];
+
+        foreach ($this->product_consumibles as $productConsumible) {
+            if ($this->id == $productConsumible->consumible->id) break;
+            $inventario = $productConsumible->consumible->getCantidadActual($almacen);
+            if (isset($inventario)) {
+                $cociente = $inventario;
                 array_push($cociente1, $cociente);
             }
         }

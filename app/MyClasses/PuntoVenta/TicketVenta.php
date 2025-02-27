@@ -144,7 +144,7 @@ class TicketVenta
                     'ventaticket_id' => $this->id,
                     'status' => 'pending',
                     'uses_consumable' => $articulo->usesConsumable(),
-                    'consumable_deducted' => false;
+                    'consumable_deducted' => false
                 ]);
             }
         }
