@@ -28,6 +28,10 @@ class Product extends Model
     {
         return $this->hasMany('App\Models\ProductComponent');
     }
+    public function product_consumibles()
+    {
+        return $this->hasMany('App\Models\ProductConsumible');
+    }
     public function inventario_balances()
     {
         return $this->hasMany('App\Models\InventarioBalance');
@@ -113,6 +117,7 @@ class Product extends Model
     {
         return $this->hasOne(ProductImage::class)->where('is_featured', true);
     }
+
     /**
      * The "booted" method of the model.
      */
@@ -366,6 +371,15 @@ class Product extends Model
                     ->where('almacen_id', $almacenId)->value('cantidad_actual');
             }
         );
+    }
+    public function usesConsumable()
+    {
+        foreach ($this->product_components as $component) {
+            if ($component->product_consumibles->count()) {
+                return true;
+            }
+        }
+        return false;
     }
     public function getCantidadActualKit($almacen)
     {

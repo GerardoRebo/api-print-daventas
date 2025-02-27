@@ -3,6 +3,7 @@
 namespace App\MyClasses\PuntoVenta;
 
 use App\Exceptions\OperationalException;
+use App\Models\ProductionOrder;
 use App\Models\Ventaticket;
 use App\Models\VentaticketArticulo;
 use App\MyClasses\TiendaHttp;
@@ -134,6 +135,19 @@ class TicketVenta
             return $this->descuento;
         }
         return $this->descuento = $this->getArticulos()->sum('importe_descuento');
+    }
+    function sendToProduction()
+    {
+        foreach ($this->getArticulos() as  $articulo) {
+            if ($articulo->product->necesita_produccion) {
+                $articulo->production_order()->create([
+                    'ventaticket_id' => $this->id,
+                    'status' => 'pending',
+                    'uses_consumable' => $articulo->usesConsumable(),
+                    'consumable_deducted' => false;
+                ]);
+            }
+        }
     }
     public function getArticulos()
     {

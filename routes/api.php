@@ -15,6 +15,7 @@ use App\Http\Controllers\MovimientoController;
 use App\Http\Controllers\OrganizacionController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImageController;
+use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\ProductTaxController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\PuntoVentaController;
@@ -219,6 +220,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/setnombreticket', 'setnombreticket')->name('setnombreticket');
         Route::post('/cancelarmovimiento', 'cancelarmovimiento')->name('cancelarmovimiento');
         Route::post('/cambiaprecio', 'cambiaprecio')->name('cambiaprecio');
+    });
+    Route::controller(ProductionOrderController::class)->prefix('production_orders')->name('production_orders.')->group(function () {
+        Route::get('', 'index')->name('index');
     });
     Route::controller(ProductController::class)->prefix('products')->name('products.')->group(function () {
 

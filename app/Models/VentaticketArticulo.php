@@ -42,7 +42,16 @@ class VentaticketArticulo extends Model
     {
         return $this->hasMany('App\Models\AbonoArticulo');
     }
+    //relacion uno a uno
+    public function production_order()
+    {
+        return $this->hasMany('App\Models\ProductionOrder');
+    }
     //metodos
+    public function usesConsumable()
+    {
+        $this->product->;
+    }
     public function addCantidad($cantidad)
     {
         $this->cantidad += $cantidad;
