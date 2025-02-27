@@ -141,6 +141,8 @@ class TicketVenta
         foreach ($this->getArticulos() as  $articulo) {
             if ($articulo->product->necesita_produccion) {
                 $articulo->production_order()->create([
+                    'organization_id' => $this->ticket->organization_id,
+                    'almacen_id' => $this->ticket->almacen_id,
                     'ventaticket_id' => $this->id,
                     'status' => 'pending',
                     'uses_consumable' => $articulo->usesConsumable(),

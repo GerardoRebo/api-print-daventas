@@ -9,6 +9,8 @@ class ProductionOrderController extends Controller
 {
     function index()
     {
-        return ProductionOrder::all();
+        $user = auth()->user();
+        $organizatinoId = $user->organization_id;
+        return ProductionOrder::with('ventaticket', 'ventaticket_articulo.product')->where('organization_id', $organizatinoId)->get();
     }
 }

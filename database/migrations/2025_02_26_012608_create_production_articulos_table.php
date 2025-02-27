@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('production_orders', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('almacen_id')->constrained()->cascadeOnDelete();
             $table->foreignId('ventaticket_id')->constrained()->cascadeOnDelete();
             $table->foreignId('ventaticket_articulo_id')->constrained()->cascadeOnDelete();
 
@@ -32,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('production_articulos');
+        Schema::dropIfExists('production_orders');
     }
 };
