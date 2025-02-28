@@ -272,4 +272,13 @@ class VentaticketArticulo extends Model
         $this->incrementInventario($cantidad);
         $this->delete();
     }
+    public function enuffInventario()
+    {
+        $cantidadActual = $this->product->getCantidadActual($this->ventaticket->almacen_id);
+        return $cantidadActual >= $this->cantidad;
+    }
+    function necesitaProduction()
+    {
+        return !!$this->product->necesita_produccion;
+    }
 }

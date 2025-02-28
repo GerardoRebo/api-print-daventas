@@ -120,6 +120,11 @@ class PuntoVentaController extends Controller
             throw new OperationalException("No has habilitado la caja, seras redireccionado", 1);
         }
         $ticketVenta = new TicketVenta($ventaticket);
+        $notEnoughInventory = $ticketVenta->ticket->checkArticulosEnoughInventory();
+        if (count($notEnoughInventory)) {
+            $productsList = implode(", ", $notEnoughInventory);
+            throw new OperationalException("Los siguientes productos no tienen suficiente inventario: " . $productsList, 1);
+        }
         if ($ticketVenta->ticket->pagado_en) {
             return;
         }

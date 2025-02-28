@@ -150,7 +150,8 @@ class Ventaticket extends Model
         $articulo->setTaxes();
 
         $articulo->save();
-        $articulo->incrementInventario(-$product->cantidad);
+        //todo:quitar
+        // $articulo->incrementInventario(-$product->cantidad);
     }
     public function yaExisteArticuloEnTicket($product)
     {
@@ -221,6 +222,24 @@ class Ventaticket extends Model
     public function getAlmacen()
     {
         return $this->almacen_id;
+    }
+    function checkArticulosEnoughInventory()
+    {
+        $notEnoughInventory = [];
+        foreach ($this->ventaticket_articulos as $articulo) {
+            if (!$articulo->enuffInventario()) {
+                $notEnoughInventory[] = $articulo->product->name;
+            }
+        }
+        return $notEnoughInventory;
+    }
+    function decrementArticulos()
+    {
+        foreach ($this->ventaticket_articulos as $articulo) {
+            if ($articulo->necesitaProduction()) {
+                $articulo->incrementInventario(-$articulo->cantidad);
+            }
+        }
     }
     private function facturaValidations($clavePrivadaLocal)
     {

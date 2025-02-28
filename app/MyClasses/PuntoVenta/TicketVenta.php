@@ -56,7 +56,7 @@ class TicketVenta
 
         $articulo->save();
         //todo:quitar
-        $articulo->incrementInventario(-$product->cantidad);
+        // $articulo->incrementInventario(-$product->cantidad);
     }
     function updateArticulo($product, $articulo, $restaCantidad)
     {
@@ -246,6 +246,7 @@ class TicketVenta
             $articulosHistory
         );
     }
+
     function checkAllExistingProducts()
     {
         foreach ($this->getArticulos() as $articulo) {
