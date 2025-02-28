@@ -223,6 +223,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     });
     Route::controller(ProductionOrderController::class)->prefix('production_orders')->name('production_orders.')->group(function () {
         Route::get('', 'index')->name('index');
+        Route::put('{productionOrder}', 'update')->name('update');
+        Route::post('{productionOrder}/storeConsumibleGenerico', 'storeConsumibleGenerico')->name('storeConsumibleGenerico');
     });
     Route::controller(ProductController::class)->prefix('products')->name('products.')->group(function () {
 

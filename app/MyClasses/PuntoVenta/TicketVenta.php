@@ -55,6 +55,7 @@ class TicketVenta
         $articulo->setTaxes();
 
         $articulo->save();
+        //todo:quitar
         $articulo->incrementInventario(-$product->cantidad);
     }
     function updateArticulo($product, $articulo, $restaCantidad)

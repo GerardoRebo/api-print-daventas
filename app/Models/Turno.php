@@ -89,7 +89,6 @@ class Turno extends Model
     }
     function updateAcumulados()
     {
-
         $tickets = $this->ventatickets()->where('esta_cancelado', 0)->get();
         $this->update([
             'ventas_efectivo' => $tickets->sum('fp_efectivo'),

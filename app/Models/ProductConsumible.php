@@ -11,7 +11,8 @@ class ProductConsumible extends Model
     use HasFactory, SoftDeletes;
     protected $guarded = [];
     protected $with = ['consumible'];
-
+    //product_id- consumible generico
+    //consumible_id- consumible especifico
     //relacion uno a muchos inversa
 
     public function product()
