@@ -236,6 +236,7 @@ class Ventaticket extends Model
     function decrementArticulos()
     {
         foreach ($this->ventaticket_articulos as $articulo) {
+            //todo:revisar
             if ($articulo->necesitaProduction()) {
                 $articulo->incrementInventario(-$articulo->cantidad);
             }

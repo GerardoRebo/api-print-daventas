@@ -281,4 +281,35 @@ class VentaticketArticulo extends Model
     {
         return !!$this->product->necesita_produccion;
     }
+    public function createInventarioHistorial($tipo, $descripcion, $user = null)
+    {
+        if (!$user) {
+            $user = $this->ventaticket->user;
+        }
+        $almacenId = $this->ventaticket->almacen_id;
+        $articulosHistory = [];
+        $inventarioActual = $this->getCantidadInventario($almacenId);
+        $cantidadEnTicket = $this->cantidad;
+
+        if ($tipo == "increment") {
+            $cantidadAnterior = $inventarioActual;
+            $cantidadPosterior = $inventarioActual + $cantidadEnTicket;
+            $cantidad = $cantidadEnTicket;
+        } else {
+            $cantidadAnterior = $inventarioActual + $cantidadEnTicket;
+            $cantidadPosterior = $inventarioActual;
+            $cantidad = -$cantidadEnTicket;
+        }
+        InventHistorial::create([
+            'user_id' => $user->id,
+            'organization_id' => $user->organization_id,
+            'product_id' => $this->product_id,
+            'almacen_id' => $almacenId,
+            'cantidad' => $cantidad,
+            'cantidad_anterior' => $cantidadAnterior ?? 0,
+            'cantidad_despues' => $cantidadPosterior ?? 0,
+            'descripcion' => $descripcion,
+            'created_at' => getMysqlTimestamp($user->configuration?->time_zone)
+        ]);
+    }
 }

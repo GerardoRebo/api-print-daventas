@@ -261,11 +261,26 @@ class Product extends Model
     public function incrementInventario($cantidad, $almacenId)
     {
         $product = $this;
+        if ($product->es_consumible_generico) {
+            return;
+        }
         if ($product->es_kit) {
             foreach ($product->product_components as $componente) {
+                if ($componente->product_hijo->es_consumible_generico) {
+                    continue;
+                }
                 $inventario = $componente->product_hijo->getInventario($almacenId);
                 $inventario->increment('cantidad_actual', ($cantidad * $componente->cantidad));
             }
+            return;
+        }
+        $inventario = $product->getInventario($almacenId);
+        $inventario->increment('cantidad_actual', $cantidad);
+    }
+    public function incrementInventarioConsumibleGenerico($cantidad, $almacenId)
+    {
+        $product = $this;
+        if (!$product->es_consumible_generico) {
             return;
         }
         $inventario = $product->getInventario($almacenId);

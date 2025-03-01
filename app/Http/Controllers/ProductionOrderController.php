@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InventHistorial;
 use App\Models\Product;
 use App\Models\ProductionOrder;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class ProductionOrderController extends Controller
     }
     function storeConsumibleGenerico(Request $request, ProductionOrder $productionOrder)
     {
+        $user = auth()->user();
         $consumiblesEnviados = $request->consumibles;
         $articulo = $productionOrder->ventaticket_articulo;
         $product = $articulo->product;
@@ -31,10 +33,14 @@ class ProductionOrderController extends Controller
                 $productEspecifico = Product::find($productoEspecificoId);
                 if ($productEspecifico) {
                     $cantidad = $component->cantidad * $articulo->cantidad;
-                    $productEspecifico->incrementInventario(-$cantidad, $productionOrder->almacen_id);
+                    $productEspecifico->incrementInventarioConsumibleGenerico(-$cantidad, $productionOrder->almacen_id);
+                    $articulo->createInventarioHistorial('decrement', 'Etapa de produccion', $user);
+                    logger('yey');
                 }
             }
         }
+        $productionOrder->consumable_deducted = true;
+        $productionOrder->save();
         return $productionOrder->status;
     }
 }
