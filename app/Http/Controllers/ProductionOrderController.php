@@ -13,7 +13,7 @@ class ProductionOrderController extends Controller
     {
         $user = auth()->user();
         $organizatinoId = $user->organization_id;
-        return ProductionOrder::with('ventaticket', 'ventaticket_articulo.product.product_components.product_hijo.product_consumibles')->where('organization_id', $organizatinoId)->get();
+        return ProductionOrder::with('ventaticket.almacen', 'ventaticket.cliente','ventaticket.user', 'ventaticket_articulo.product.product_components.product_hijo.product_consumibles')->where('organization_id', $organizatinoId)->get();
     }
     function update(Request $request, ProductionOrder $productionOrder)
     {
@@ -35,7 +35,6 @@ class ProductionOrderController extends Controller
                     $cantidad = $component->cantidad * $articulo->cantidad;
                     $productEspecifico->incrementInventarioConsumibleGenerico(-$cantidad, $productionOrder->almacen_id);
                     $articulo->createInventarioHistorial('decrement', 'Etapa de produccion', $user);
-                    logger('yey');
                 }
             }
         }
