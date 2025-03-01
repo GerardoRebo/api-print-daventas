@@ -140,6 +140,7 @@ class TicketVenta
     function sendToProduction()
     {
         foreach ($this->getArticulos() as  $articulo) {
+            logger($articulo);
             if ($articulo->product->necesita_produccion) {
                 $articulo->production_order()->create([
                     'organization_id' => $this->ticket->organization_id,

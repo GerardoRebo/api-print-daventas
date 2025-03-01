@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->boolean("es_consumible_generico")->nullable();
+            $table->enum('consumible', ['generico', 'regular'])->nullable();
             $table->boolean("necesita_produccion")->nullable();
             $table->boolean("usa_medidas")->nullable();
         });
@@ -24,7 +24,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->dropColumn("es_consumible_generico");
+            $table->dropColumn("consumible");
             $table->dropColumn("necesita_produccion");
             $table->dropColumn("usa_medidas");
         });

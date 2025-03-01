@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::table('ventaticket_articulos', function (Blueprint $table) {
             $table->decimal('ancho')->nullable();
             $table->decimal('alto')->nullable();
+            $table->decimal('area')->nullable();
         });
     }
 
@@ -25,6 +26,7 @@ return new class extends Migration
         Schema::table('ventaticket_articulos', function (Blueprint $table) {
             $table->dropColumn('ancho');
             $table->dropColumn('alto');
+            $table->dropColumn('area');
         });
     }
 };

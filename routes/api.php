@@ -234,6 +234,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/historialPrecio', 'historialPrecio')->name('historialPrecio');
         Route::get('/historialCosto', 'historialCosto')->name('historialCosto');
         Route::get('/searchkeywordsimple', 'searchkeywordsimple')->name('searchkeywordsimple');
+        Route::get('/searchconsumiblekeywordsimple', 'searchconsumiblekeywordsimple')->name('searchconsumiblekeywordsimple');
         Route::get('/agregarcomponente', 'agregarcomponente')->name('agregarcomponente');
         Route::post('/agregarconsumible', 'agregarconsumible')->name('agregarconsumible');
         Route::get('/eliminarComponente', 'eliminarComponente')->name('eliminarComponente');

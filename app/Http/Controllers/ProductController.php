@@ -240,6 +240,23 @@ class ProductController extends Controller
 
         return $productines;
     }
+    public function searchconsumiblekeywordsimple(Request $request)
+    {
+        $user = $request->user();
+        $keyword = request()->input('keyword');
+        if ($keyword == null) {
+            $keyword = '';
+        } else {
+            $keyword = $keyword;
+        }
+        $productines = Product::where('name', 'like', '%' . $keyword . '%')
+            ->where('es_kit', 0)
+            ->where('consumible', 'regular')
+            ->where('organization_id', $user->organization_id)
+            ->orderBy('name', 'asc')->take(50)->get();
+
+        return $productines;
+    }
     public function searchcodesimple(Request $request)
     {
         $user = $request->user();
@@ -282,6 +299,12 @@ class ProductController extends Controller
     public function store(Request $request, ProductLogic $pl)
     {
         $user = $request->user()->load('almacens');
+        //si es consumible
+        if ($request->consumible !== null) {
+            $request->merge([
+                'necesita_produccion' =>  false ,
+            ]);
+        }
         $validator = FacadesValidator::make(
             $request->all(),
             [
@@ -293,8 +316,8 @@ class ProductController extends Controller
                 'porcentaje_ganancia' => 'nullable|numeric',
                 'prioridad' => 'nullable|boolean',
                 'es_kit' => 'required|boolean',
-                'es_consumible_generico' => 'required|boolean',
-                'usa_medidas' => 'required|boolean',
+                'consumible' => 'nullable|in:generico,regular',
+                'usa_medidas' => 'nullable|boolean',
                 'necesita_produccion' => 'required|boolean',
                 'perecedero' => 'nullable|boolean',
             ],
@@ -327,7 +350,7 @@ class ProductController extends Controller
         $newProduct->prioridad = $request->prioridad;
         $newProduct->porcentaje_ganancia = $request->porcentaje_ganancia;
         $newProduct->es_kit = $request->es_kit;
-        $newProduct->es_consumible_generico = $request->es_consumible_generico;
+        $newProduct->consumible = $request->consumible;
         $newProduct->usa_medidas = $request->usa_medidas;
         $newProduct->save();
 
@@ -504,6 +527,13 @@ class ProductController extends Controller
     }
     public function update(Request $request, Product $product)
     {
+        logger($request->all());
+        //si es consumible
+        if ($request->consumible !== null) {
+            $request->merge([
+                'necesita_produccion' =>  false ,
+            ]);
+        }
         $request->validate([
             'codigo' => "required|string|max:70"/* |unique:products,codigo,$product->id */,
             'name' => 'required|nullable|string|max:200',
@@ -514,8 +544,8 @@ class ProductController extends Controller
             'porcentaje_ganancia' => 'nullable',
             'es_kit' => 'nullable|boolean',
             // 'perecedero' => 'nullable|boolean',
-            'usa_medidas' => 'required|boolean',
-            'es_consumible_generico' => 'required|boolean',
+            'usa_medidas' => 'nullable|boolean',
+            'consumible' => 'nullable|in:generico,regular',
             'necesita_produccion' => 'required|boolean',
         ]);
 
@@ -527,7 +557,7 @@ class ProductController extends Controller
         $product->prioridad = $request->prioridad;
         $product->porcentaje_ganancia = $request->porcentaje_ganancia;
         $product->es_kit = $request->es_kit;
-        $product->es_consumible_generico = $request->es_consumible_generico;
+        $product->consumible = $request->consumible;
         $product->usa_medidas = $request->usa_medidas;
         $product->necesita_produccion = $request->necesita_produccion;
         $product->save();
