@@ -111,13 +111,18 @@ class ProductController extends Controller
         });
         return $productosPaginados->setCollection($productines);
     }
-
     //BuscaProducto en Modal /BasicQuery
     public function searchkeyword(Request $request, ProductLogic $productLogic)
     {
         $user = $request->user();
         $org = $user->organization_id;
         $codigo = $request->codigo;
+
+        $consumibles = $request->consumibles ?? true;
+        $consumibles = filter_var($request->consumibles, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        logger(gettype($request->consumibles));
+      
+
         $almacenActualId = request()->almacenActualId;
 
         if ($request->codigo == null) {
@@ -125,11 +130,16 @@ class ProductController extends Controller
         }
 
         $basicQuery = $productLogic->basicQuery($almacenActualId);
+       
         $productos = Cache::remember(
             'Org:' . $org . 'Cod::' . $codigo,
             20,
-            function () use ($basicQuery, $codigo, $org) {
+            function () use ($basicQuery, $codigo, $org, $consumibles) {
                 return $basicQuery->where('name', 'like', '%' . $codigo . '%')
+                    ->when($consumibles===false, function (Builder $query) {
+                        logger('entro');
+                        return $query->where('consumible',null  );
+                    })
                     ->where('products.organization_id', $org)
                     ->orWhere('codigo', $codigo)
                     ->take(80)
@@ -240,6 +250,7 @@ class ProductController extends Controller
 
         return $productines;
     }
+    //ConsumiblesVista 
     public function searchconsumiblekeywordsimple(Request $request)
     {
         $user = $request->user();

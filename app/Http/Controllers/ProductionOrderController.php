@@ -32,7 +32,11 @@ class ProductionOrderController extends Controller
                 $productoEspecificoId = $consumiblesEnviados[$component->product_hijo->id];
                 $productEspecifico = Product::find($productoEspecificoId);
                 if ($productEspecifico) {
-                    $cantidad = $component->cantidad * $articulo->cantidad;
+                    if ($articulo->usaMedidas()) {
+                        $cantidad = $component->cantidad * $articulo->cantidad * $articulo->area;
+                    } else {
+                        $cantidad = $component->cantidad * $articulo->cantidad;
+                    }
                     $productEspecifico->incrementInventarioConsumibleGenerico(-$cantidad, $productionOrder->almacen_id);
                     $articulo->createInventarioHistorial('decrement', 'Etapa de produccion', $user);
                 }

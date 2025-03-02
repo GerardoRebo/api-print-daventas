@@ -140,8 +140,7 @@ class TicketVenta
     function sendToProduction()
     {
         foreach ($this->getArticulos() as  $articulo) {
-            logger($articulo);
-            if ($articulo->product->necesita_produccion) {
+            if ($articulo->necesitaProduction()) {
                 $articulo->production_order()->create([
                     'organization_id' => $this->ticket->organization_id,
                     'almacen_id' => $this->ticket->almacen_id,
@@ -219,6 +218,10 @@ class TicketVenta
         $almacenId = $this->ticket->almacen_id;
         $articulosHistory = [];
         foreach ($this->getArticulos() as  $articulo) {
+            if ($articulo->esConsumibleGenerico()) {
+                continue;
+            }
+            
             $inventarioActual = $articulo->getCantidadInventario($almacenId);
             $cantidadEnTicket = $articulo->cantidad;
 

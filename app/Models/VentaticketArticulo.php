@@ -281,15 +281,26 @@ class VentaticketArticulo extends Model
     {
         return !!$this->product->necesita_produccion;
     }
+    function esConsumibleGenerico()
+    {
+        return $this->product->consumible == 'generico';
+    }
+function usaMedidas() {
+        return $this->product->usa_medidas;
+    
+}
     public function createInventarioHistorial($tipo, $descripcion, $user = null)
     {
         if (!$user) {
             $user = $this->ventaticket->user;
         }
         $almacenId = $this->ventaticket->almacen_id;
-        $articulosHistory = [];
         $inventarioActual = $this->getCantidadInventario($almacenId);
-        $cantidadEnTicket = $this->cantidad;
+        if ($this->usaMedidas()) {
+            $cantidadEnTicket = $this->cantidad * $this->area;
+        } else{
+            $cantidadEnTicket = $this->cantidad;
+        }
 
         if ($tipo == "increment") {
             $cantidadAnterior = $inventarioActual;
