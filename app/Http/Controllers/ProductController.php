@@ -120,7 +120,6 @@ class ProductController extends Controller
 
         $consumibles = $request->consumibles ?? true;
         $consumibles = filter_var($request->consumibles, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-        logger(gettype($request->consumibles));
 
 
         $almacenActualId = request()->almacenActualId;
@@ -137,7 +136,6 @@ class ProductController extends Controller
             function () use ($basicQuery, $codigo, $org, $consumibles) {
                 return $basicQuery->where('name', 'like', '%' . $codigo . '%')
                     ->when($consumibles === false, function (Builder $query) {
-                        logger('entro');
                         return $query->where('consumible', null);
                     })
                     ->where('products.organization_id', $org)
@@ -538,7 +536,6 @@ class ProductController extends Controller
     }
     public function update(Request $request, Product $product)
     {
-        logger($request->all());
         //si es consumible
         if ($request->consumible !== null) {
             $request->merge([

@@ -206,6 +206,10 @@ class Product extends Model
         }
         $descuento * $cantidad;
     }
+    function getConsumiblePadre()
+    {
+        return ProductConsumible::where('consumible_id', $this->id)->first();
+    }
     public function procesaAjusteCosto(User $user, $pcosto, $descripcion)
     {
         $productA = $this;
@@ -213,6 +217,10 @@ class Product extends Model
 
         $users = $user->getUsersInMyOrg();
         Notification::send($users, new AjusteMPrecio($user->name, $productA->name, $pcosto, 'Ajuste Manual de costo'));
+        $consumiblePadre = $this->getConsumiblePadre();
+        if ($consumiblePadre) {
+            $consumiblePadre->product->procesaAjusteCosto($user, $pcosto, 'Ajuste de costo a través del consumible genérico');
+        }
 
         if ($productA->es_kit && count($productA->product_components) == 1) {
             $productHijo = $productA->product_components->first()->product_hijo;
@@ -284,10 +292,7 @@ class Product extends Model
         if (!$product->consumible == 'generico') {
             return;
         }
-        logger('asdfasdf');
         $inventario = $product->getInventario($almacenId);
-        logger($inventario);
-        logger($cantidad);
         $inventario->increment('cantidad_actual', $cantidad);
     }
     public function getPrecioSugerido($almacenId)
@@ -428,7 +433,6 @@ class Product extends Model
         foreach ($this->product_consumibles as $productConsumible) {
             if ($this->id == $productConsumible->consumible->id) break;
             $inventario = $productConsumible->consumible->getCantidadActual($almacen);
-            logger($inventario);
             if (isset($inventario)) {
                 $cociente = $inventario;
                 array_push($cociente1, $cociente);
