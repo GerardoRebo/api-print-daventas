@@ -185,6 +185,9 @@ class TicketVenta
         $articulo->product_name = $product->product->name;
         $articulo->departamento_id = null;
         $articulo->cantidad = $product->cantidad;
+        $articulo->ancho = $product->ancho;
+        $articulo->alto = $product->alto;
+        $articulo->area = $product->ancho * $product->alto;
         $articulo->ganancia = $ganancia;
         $articulo->pagado_en = null;
         $articulo->importe_descuento = 0;
@@ -221,7 +224,7 @@ class TicketVenta
             if ($articulo->esConsumibleGenerico()) {
                 continue;
             }
-            
+
             $inventarioActual = $articulo->getCantidadInventario($almacenId);
             $cantidadEnTicket = $articulo->cantidad;
 

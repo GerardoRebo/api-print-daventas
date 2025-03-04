@@ -260,13 +260,14 @@ class Product extends Model
     }
     public function incrementInventario($cantidad, $almacenId)
     {
+
         $product = $this;
-        if ($product->es_consumible_generico) {
+        if ($product->consumible == 'generico') {
             return;
         }
         if ($product->es_kit) {
             foreach ($product->product_components as $componente) {
-                if ($componente->product_hijo->es_consumible_generico) {
+                if ($componente->product_hijo->consumible == 'generico') {
                     continue;
                 }
                 $inventario = $componente->product_hijo->getInventario($almacenId);
@@ -280,10 +281,13 @@ class Product extends Model
     public function incrementInventarioConsumibleGenerico($cantidad, $almacenId)
     {
         $product = $this;
-        if (!$product->es_consumible_generico) {
+        if (!$product->consumible == 'generico') {
             return;
         }
+        logger('asdfasdf');
         $inventario = $product->getInventario($almacenId);
+        logger($inventario);
+        logger($cantidad);
         $inventario->increment('cantidad_actual', $cantidad);
     }
     public function getPrecioSugerido($almacenId)
@@ -375,7 +379,7 @@ class Product extends Model
         if ($this->es_kit) {
             return $this->getCantidadActualKit($almacenId);
         }
-        if ($this->es_consumible_generico) {
+        if ($this->consumible == 'generico') {
             return $this->getCantidadActualConsumibleGenerico($almacenId);
         }
         return  InventarioBalance::where('product_id', $this->id)
@@ -424,13 +428,14 @@ class Product extends Model
         foreach ($this->product_consumibles as $productConsumible) {
             if ($this->id == $productConsumible->consumible->id) break;
             $inventario = $productConsumible->consumible->getCantidadActual($almacen);
+            logger($inventario);
             if (isset($inventario)) {
                 $cociente = $inventario;
                 array_push($cociente1, $cociente);
             }
         }
         if (count($cociente1)) {
-            $cantidad = min($cociente1);
+            $cantidad = array_sum($cociente1);
         } else {
             $cantidad = null;
         }

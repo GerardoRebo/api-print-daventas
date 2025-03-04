@@ -28,13 +28,15 @@ class PuntoVentaController extends Controller
     public function register(Request $request)
     {
         $user = $request->user();
-        $ventaticket = $request->input('params.ticketActual');
-        $product = $request->input('params.productActualId');
-        $precio = $request->input('params.precio');
-        $cantidad = $request->input('params.cantidad');
+        $ventaticket = $request->input('ticketActual');
+        $product = $request->input('productActualId');
+        $precio = $request->input('precio');
+        $cantidad = $request->input('cantidad');
+        $ancho = $request->input('ancho');
+        $alto = $request->input('alto');
         if ($cantidad == null) return "Cantidad Nulo";
 
-        $product = new ProductArticuloVenta($product, $precio, $cantidad);
+        $product = new ProductArticuloVenta($product, $precio, $cantidad, $ancho, $alto);
         $ticketVenta = new TicketVenta($ventaticket);
         $ticketVenta->registerArticulo($product);
     }

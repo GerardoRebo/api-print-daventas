@@ -285,10 +285,10 @@ class VentaticketArticulo extends Model
     {
         return $this->product->consumible == 'generico';
     }
-function usaMedidas() {
+    function usaMedidas()
+    {
         return $this->product->usa_medidas;
-    
-}
+    }
     public function createInventarioHistorial($tipo, $descripcion, $user = null)
     {
         if (!$user) {
@@ -298,7 +298,7 @@ function usaMedidas() {
         $inventarioActual = $this->getCantidadInventario($almacenId);
         if ($this->usaMedidas()) {
             $cantidadEnTicket = $this->cantidad * $this->area;
-        } else{
+        } else {
             $cantidadEnTicket = $this->cantidad;
         }
 

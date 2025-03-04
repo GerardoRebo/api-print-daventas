@@ -196,6 +196,8 @@ class Ventaticket extends Model
                 'products.*',
                 'inventario_balances.cantidad_actual',
                 'ventaticket_articulos.cantidad',
+                'ventaticket_articulos.ancho',
+                'ventaticket_articulos.alto',
                 'ventaticket_articulos.id',
                 'ventaticket_articulos.cantidad_devuelta',
                 'ventaticket_articulos.impuesto_traslado',
@@ -236,14 +238,11 @@ class Ventaticket extends Model
     function decrementArticulos()
     {
         foreach ($this->ventaticket_articulos as $articulo) {
-            if ($articulo->esConsumibleGenerico()) {
-                continue;
-            }
-            $cantidad =$articulo->cantidad;
+            $cantidad = $articulo->cantidad;
             if ($articulo->usaMedidas()) {
-                $cantidad= $cantidad * $articulo->area;
+                $cantidad = $cantidad * $articulo->area;
             }
-                $articulo->incrementInventario(-$cantidad);
+            $articulo->incrementInventario(-$cantidad);
         }
     }
     private function facturaValidations($clavePrivadaLocal)

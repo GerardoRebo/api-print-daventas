@@ -11,6 +11,8 @@ class ProductArticuloVenta
         public $id,
         public $precio,
         public $cantidad,
+        public $ancho,
+        public $alto,
 
     ) {
         $this->product = Product::with(['descuentos'])->find($id);
@@ -44,5 +46,4 @@ class ProductArticuloVenta
     {
         return $this->product->taxes;
     }
-    
 }

@@ -13,7 +13,10 @@ class ProductionOrderController extends Controller
     {
         $user = auth()->user();
         $organizatinoId = $user->organization_id;
-        return ProductionOrder::with('ventaticket.almacen', 'ventaticket.cliente','ventaticket.user', 'ventaticket_articulo.product.product_components.product_hijo.product_consumibles')->where('organization_id', $organizatinoId)->get();
+        return ProductionOrder::with('ventaticket.almacen', 'ventaticket.cliente', 'ventaticket.user', 'ventaticket_articulo.product.product_components.product_hijo.product_consumibles')
+            ->where('organization_id', $organizatinoId)
+            ->latest()
+            ->get();
     }
     function update(Request $request, ProductionOrder $productionOrder)
     {
@@ -28,11 +31,11 @@ class ProductionOrderController extends Controller
         $articulo = $productionOrder->ventaticket_articulo;
         $product = $articulo->product;
         foreach ($product->product_components as $component) {
-            if ($component->product_hijo->es_consumible_generico) {
+            if ($component->product_hijo->consumible == 'generico') {
                 $productoEspecificoId = $consumiblesEnviados[$component->product_hijo->id];
                 $productEspecifico = Product::find($productoEspecificoId);
                 if ($productEspecifico) {
-                    if ($articulo->usaMedidas()) {
+                    if ($product->usa_medidas) {
                         $cantidad = $component->cantidad * $articulo->cantidad * $articulo->area;
                     } else {
                         $cantidad = $component->cantidad * $articulo->cantidad;

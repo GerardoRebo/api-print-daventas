@@ -63,7 +63,7 @@ class ProductController extends Controller
         if ($request->input('departamentoActualId') != '0') {
             $departamentoActualId = $request->input('departamentoActualId');
         }
-        $productosPaginados = Product::with('product_components')->leftJoin('departamento_product', 'products.id', '=', 'departamento_product.product_id')
+        $productosPaginados = Product::with('product_components', 'product_consumibles')->leftJoin('departamento_product', 'products.id', '=', 'departamento_product.product_id')
             ->leftJoin('product_proveedor',  'products.id', '=', 'product_proveedor.product_id')
             ->leftJoin('precios', function ($join) use ($request) {
                 $join->on('products.id', '=', 'precios.product_id')
@@ -104,7 +104,7 @@ class ProductController extends Controller
             ->paginate(10);
 
         $productines = $productosPaginados->getCollection()->unique()->map(function ($item) {
-            if ($item->es_kit) {
+            if ($item->es_kit || $item->consumible == 'generico') {
                 $item->cantidad_actual = $item->getCantidadActual(request()->almacenActualId);
             }
             return $item;
@@ -121,7 +121,7 @@ class ProductController extends Controller
         $consumibles = $request->consumibles ?? true;
         $consumibles = filter_var($request->consumibles, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
         logger(gettype($request->consumibles));
-      
+
 
         $almacenActualId = request()->almacenActualId;
 
@@ -130,15 +130,15 @@ class ProductController extends Controller
         }
 
         $basicQuery = $productLogic->basicQuery($almacenActualId);
-       
+
         $productos = Cache::remember(
             'Org:' . $org . 'Cod::' . $codigo,
             20,
             function () use ($basicQuery, $codigo, $org, $consumibles) {
                 return $basicQuery->where('name', 'like', '%' . $codigo . '%')
-                    ->when($consumibles===false, function (Builder $query) {
+                    ->when($consumibles === false, function (Builder $query) {
                         logger('entro');
-                        return $query->where('consumible',null  );
+                        return $query->where('consumible', null);
                     })
                     ->where('products.organization_id', $org)
                     ->orWhere('codigo', $codigo)
@@ -313,7 +313,7 @@ class ProductController extends Controller
         //si es consumible
         if ($request->consumible !== null) {
             $request->merge([
-                'necesita_produccion' =>  false ,
+                'necesita_produccion' =>  false,
             ]);
         }
         $validator = FacadesValidator::make(
@@ -542,7 +542,7 @@ class ProductController extends Controller
         //si es consumible
         if ($request->consumible !== null) {
             $request->merge([
-                'necesita_produccion' =>  false ,
+                'necesita_produccion' =>  false,
             ]);
         }
         $request->validate([
