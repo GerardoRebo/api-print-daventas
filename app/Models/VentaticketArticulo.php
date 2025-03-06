@@ -76,7 +76,11 @@ class VentaticketArticulo extends Model
     public function setImporte()
     {
         //subtotal
-        $importe = $this->precio_usado * $this->cantidad;
+        if ($this->usaMedidas()) {
+            $importe = $this->precio_usado * $this->area_total;
+        } else {
+            $importe = $this->precio_usado * $this->cantidad;
+        }
         $this->precio_final = $importe;
     }
     public function getGanancia()
@@ -268,8 +272,12 @@ class VentaticketArticulo extends Model
     }
     function destroyMe()
     {
-        $cantidad = $this->cantidad;
-        $this->incrementInventario($cantidad);
+        // $cantidad = $this->cantidad;
+        // if ($this->usaMedidas()) {
+        //     $this->incrementInventario($this->area_total);
+        // } else {
+        //     $this->incrementInventario($cantidad);
+        // }
         $this->delete();
     }
     public function enuffInventario()

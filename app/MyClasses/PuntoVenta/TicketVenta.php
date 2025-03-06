@@ -35,6 +35,9 @@ class TicketVenta
         $por_descuento = null;
 
         if ($yaExisteArticulo) {
+            if ($product->product->usaMedidas()) {
+                throw new OperationalException("El producto usa medidas", 422);
+            }
             $articulo = $this->getArticuloByProductId($product->id);
 
             $articulo->precio_usado = $product->precio;
@@ -67,6 +70,10 @@ class TicketVenta
             }
         }
         $articulo->precio_usado = $product->precio;
+        $articulo->ancho = $product->ancho;
+        $articulo->alto = $product->alto;
+        $articulo->area = $product->ancho * $product->alto;
+        $articulo->area_total  = $articulo->area * $product->cantidad;
         $articulo->addCantidad(-$restaCantidad);
         //calculate base impositiva
         $articulo->setPrecioBase();
@@ -188,6 +195,7 @@ class TicketVenta
         $articulo->ancho = $product->ancho;
         $articulo->alto = $product->alto;
         $articulo->area = $product->ancho * $product->alto;
+        $articulo->area_total = $articulo->area * $product->cantidad;
         $articulo->ganancia = $ganancia;
         $articulo->pagado_en = null;
         $articulo->importe_descuento = 0;
@@ -195,7 +203,11 @@ class TicketVenta
         $articulo->cantidad_devuelta = 0;
         $articulo->fue_devuelto = 0;
         $articulo->porcentaje_pagado = null;
-        $articulo->precio_final = $product->precio * $product->cantidad;
+        if ($product->product->usa_medidas) {
+            $articulo->precio_final = $product->precio * $articulo->area_total;
+        } else {
+            $articulo->precio_final = $product->precio * $product->cantidad;
+        }
         $articulo->agregado_en = null;
         $articulo->save();
         return $articulo;
@@ -226,7 +238,11 @@ class TicketVenta
             }
 
             $inventarioActual = $articulo->getCantidadInventario($almacenId);
-            $cantidadEnTicket = $articulo->cantidad;
+            if ($articulo->usa_medidas()) {
+                $cantidadEnTicket = $articulo->area_total;
+            } else {
+                $cantidadEnTicket = $articulo->cantidad;
+            }
 
             if ($tipo == "increment") {
                 $cantidadAnterior = $inventarioActual;

@@ -43,16 +43,18 @@ class PuntoVentaController extends Controller
     //tested
     public function update()
     {
-        $cantidad = request()->input('params.cantidad');
-        $precio = request()->input('params.precio');
-        $articulo = request()->input('params.articulo');
-        $ventaticket = request()->input('params.ventaticket');
+        $cantidad = request()->input('cantidad');
+        $ancho = request()->input('ancho');
+        $alto = request()->input('alto');
+        $precio = request()->input('precio');
+        $articulo = request()->input('articulo');
+        $ventaticket = request()->input('ventaticket');
         if ($cantidad == null) return "Cantidad Nulo";
 
         $ticketVenta = new TicketVenta($ventaticket);
         $articulo = $ticketVenta->getArticuloById($articulo);
         $restaCantidad = $articulo->cantidad - $cantidad;
-        $product = new ProductArticuloVenta($articulo->product_id, $precio, $cantidad);
+        $product = new ProductArticuloVenta($articulo->product_id, $precio, $cantidad, $ancho, $alto);
         $ticketVenta->updateArticulo($product, $articulo, $restaCantidad);
     }
     //tested
@@ -74,11 +76,11 @@ class PuntoVentaController extends Controller
 
         $ticketVenta = new TicketVenta($ventaticket);
 
-        foreach ($ticketVenta->getArticulos() as $product) {
-            $product = new ProductArticuloVenta($product->product_id, null, null);
-            $articulo = $ticketVenta->getArticuloByProductId($product->id);
-            $articulo->incrementInventario($articulo->cantidad);
-        }
+        // foreach ($ticketVenta->getArticulos() as $product) {
+        //     $product = new ProductArticuloVenta($product->product_id, null, null);
+        //     $articulo = $ticketVenta->getArticuloByProductId($product->id);
+        //     $articulo->incrementInventario($articulo->cantidad);
+        // }
 
         $ticketVenta->deleteTicket();
     }
@@ -157,7 +159,11 @@ class PuntoVentaController extends Controller
         Notification::send($users, new VentaRealizada($user->name, $ticketVenta->getConsecutivo(),  'Venta Cancelada'));
 
         foreach ($ticketVenta->getArticulos() as $articulo) {
-            $articulo->incrementInventario($articulo->cantidad);
+            if ($articulo->usaMedidas()) {
+                $articulo->incrementInventario($articulo->area_total);
+            } else {
+                $articulo->incrementInventario($articulo->cantidad);
+            }
         }
 
         $ticketVenta->ticket->update([

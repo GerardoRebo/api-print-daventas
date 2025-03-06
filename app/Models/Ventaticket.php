@@ -198,6 +198,7 @@ class Ventaticket extends Model
                 'ventaticket_articulos.cantidad',
                 'ventaticket_articulos.ancho',
                 'ventaticket_articulos.alto',
+                'ventaticket_articulos.area_total',
                 'ventaticket_articulos.id',
                 'ventaticket_articulos.cantidad_devuelta',
                 'ventaticket_articulos.impuesto_traslado',
@@ -238,9 +239,10 @@ class Ventaticket extends Model
     function decrementArticulos()
     {
         foreach ($this->ventaticket_articulos as $articulo) {
-            $cantidad = $articulo->cantidad;
             if ($articulo->usaMedidas()) {
-                $cantidad = $cantidad * $articulo->area;
+                $cantidad =  $articulo->area_total;
+            } else {
+                $cantidad = $articulo->cantidad;
             }
             $articulo->incrementInventario(-$cantidad);
         }
