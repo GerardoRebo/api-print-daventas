@@ -36,7 +36,7 @@ class ProductionOrderController extends Controller
                 $productEspecifico = Product::find($productoEspecificoId);
                 if ($productEspecifico) {
                     if ($product->usa_medidas) {
-                        $cantidad = $component->cantidad * $articulo->cantidad * $articulo->area;
+                        $cantidad = $component->cantidad * $articulo->area_total;
                     } else {
                         $cantidad = $component->cantidad * $articulo->cantidad;
                     }
