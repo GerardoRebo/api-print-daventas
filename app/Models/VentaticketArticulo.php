@@ -27,6 +27,10 @@ class VentaticketArticulo extends Model
     {
         return $this->belongsTo('App\Models\Departamento');
     }
+    public function files()
+    {
+        return $this->hasMany(ArticuloFile::class);
+    }
 
     //RELACIÓN UNO A MUCHOS
 

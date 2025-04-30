@@ -7,6 +7,7 @@ use App\Models\InventarioBalance;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Ventaticket;
+use App\Models\VentaticketArticulo;
 use App\MyClasses\Creditos\RealizarAbono;
 use App\MyClasses\PuntoVenta\CreateVentaTicket;
 use App\MyClasses\PuntoVenta\ProductArticuloVenta;
@@ -159,7 +160,7 @@ class PuntoVentaController extends Controller
         Notification::send($users, new VentaRealizada($user->name, $ticketVenta->getConsecutivo(),  'Venta Cancelada'));
 
         foreach ($ticketVenta->getArticulos() as $articulo) {
-            if ($articulo->usaMedidas()) {
+            if ($articulo->usa_medidas) {
                 $articulo->incrementInventario($articulo->area_total);
             } else {
                 $articulo->incrementInventario($articulo->cantidad);
@@ -422,6 +423,16 @@ class PuntoVentaController extends Controller
                 ->header('Content-Disposition', 'attachment; filename="factura_pdf_"');
         }
         throw new Exception("Archivo no encontrado", 1);
+    }
+    function updateDescription(Request $request, VentaticketArticulo $articulo)
+    {
+        $user = auth()->user();
+        $description = request()->input('description');
+        logger($description);
+        $articulo->update([
+            'description' => $description
+        ]);
+        return $articulo;
     }
     // function global(Request $request)
     // {

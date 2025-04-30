@@ -9,6 +9,7 @@ class ProductLogic
     public function agregaPrecios($lista_de_productos, $almacenActualId)
     {
         return $lista_de_productos->map(function (Product $item, $key) use ($almacenActualId) {
+            $item->load('product_consumibles');
             if ($item->es_kit) {
                 $item->cantidad_actual = $item->getCantidadActual($almacenActualId);
             }

@@ -13,7 +13,13 @@ class ProductionOrderController extends Controller
     {
         $user = auth()->user();
         $organizatinoId = $user->organization_id;
-        return ProductionOrder::with('ventaticket.almacen', 'ventaticket.cliente', 'ventaticket.user', 'ventaticket_articulo.product.product_components.product_hijo.product_consumibles')
+        return ProductionOrder::with(
+            'ventaticket.almacen',
+            'ventaticket.cliente',
+            'ventaticket.user',
+            'ventaticket_articulo.files',
+            'ventaticket_articulo.product.product_components.product_hijo.product_consumibles'
+        )
             ->where('organization_id', $organizatinoId)
             ->latest()
             ->get();

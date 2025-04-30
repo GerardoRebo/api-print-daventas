@@ -195,6 +195,7 @@ class Ventaticket extends Model
             ->select(
                 'products.*',
                 'inventario_balances.cantidad_actual',
+                'ventaticket_articulos.description',
                 'ventaticket_articulos.cantidad',
                 'ventaticket_articulos.ancho',
                 'ventaticket_articulos.alto',

@@ -32,22 +32,8 @@ class TicketVenta
         if (!$product->enuffInventario($this->getAlmacen())) {
             throw new OperationalException("No hay suficiente inventario", 422);
         }
-        $por_descuento = null;
 
-        if ($yaExisteArticulo) {
-            if ($product->product->usaMedidas()) {
-                throw new OperationalException("El producto usa medidas", 422);
-            }
-            $articulo = $this->getArticuloByProductId($product->id);
-
-            $articulo->precio_usado = $product->precio;
-            //calculate base impositiva
-            $articulo->cantidad += $product->cantidad;
-            // weird take a look
-            // $product->cantidad = $articulo->cantidad;
-        } else {
-            $articulo = $this->createArticulo($product);
-        }
+        $articulo = $this->createArticulo($product);
 
         //calculate base impositiva
         $articulo->setPrecioBase();
@@ -238,7 +224,7 @@ class TicketVenta
             }
 
             $inventarioActual = $articulo->getCantidadInventario($almacenId);
-            if ($articulo->usa_medidas()) {
+            if ($articulo->usa_medidas) {
                 $cantidadEnTicket = $articulo->area_total;
             } else {
                 $cantidadEnTicket = $articulo->cantidad;

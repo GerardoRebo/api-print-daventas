@@ -381,6 +381,7 @@ class Product extends Model
     }
     public function getCantidadActual($almacenId)
     {
+        $this->load('product_consumibles');
         if ($this->es_kit) {
             return $this->getCantidadActualKit($almacenId);
         }

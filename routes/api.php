@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AlmacenController;
+use App\Http\Controllers\ArticuloImageController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CodigoController;
 use App\Http\Controllers\ConceptoController;
@@ -175,6 +176,15 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/facturar/{ticket}', 'facturar')->name('facturar');
         Route::get('/descargarXml/{ticket}', 'descargarXml')->name('descargarXml');
         Route::get('/descargarPdf/{ticket}', 'descargarPdf')->name('descargarPdf');
+        Route::put('/articulo/{articulo}/description', 'updateDescription')->name('updateDescription');
+    });
+    Route::controller(ArticuloImageController::class)->prefix('articulos')->name('articulos.')->group(function () {
+        Route::get('/{articulo}/files', 'index')->name('index');
+        Route::post('/{articulo}/files', 'attachFiles')->name('attachFiles');
+        Route::delete('_files/{file}', 'articuloFilesDelete')->name('files.delete');
+    });
+    Route::controller(ArticuloImageController::class)->prefix('articulos_files')->name('articulos_files.')->group(function () {
+        Route::delete('{articuloFile}', 'articuloFilesDelete')->name('files.delete');
     });
     Route::controller(CotizacionController::class)->prefix('cotizacion')->name('cotizacion.')->group(function () {
 
