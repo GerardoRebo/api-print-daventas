@@ -24,7 +24,7 @@ class ArticuloImageController extends Controller
         $disk = App::environment('production') ? 's3' : 'public';
 
         foreach ($request->file('files') as $uploadedFile) {
-            $path = $uploadedFile->store('articulos', $disk);
+            $path = $uploadedFile->store('public/articulos', $disk);
             $articulo->files()->create([
                 'filename' => $uploadedFile->getClientOriginalName(),
                 'path' => $path,
