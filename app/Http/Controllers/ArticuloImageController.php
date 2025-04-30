@@ -37,7 +37,6 @@ class ArticuloImageController extends Controller
     }
     function articuloFilesDelete(Request $request, ArticuloFile $articuloFile)
     {
-        logger($articuloFile);
         Storage::delete($articuloFile->path);
         $articuloFile->delete();
         return response()->json(['message' => 'File deleted successfully.'], 200);
