@@ -22,7 +22,7 @@ class ArticuloImageController extends Controller
         ]);
 
         foreach ($request->file('files') as $uploadedFile) {
-            $path = $uploadedFile->store('articulos', 'public');
+            $path = $uploadedFile->store('public/articulos', 'public');
 
             $articulo->files()->create([
                 'filename' => $uploadedFile->getClientOriginalName(),
