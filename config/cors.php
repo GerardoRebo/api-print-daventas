@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*','https://app.daventas.com'],
+    'allowed_origins' => ['*', 'https://print.daventas.com'],
 
     'allowed_origins_patterns' => [],
 

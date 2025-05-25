@@ -319,7 +319,7 @@ class ProductController extends Controller
             [
                 'codigo' => "required|string|max:70",
                 'name' => 'required|string|max:200',
-                'descripcion' => 'nullable|string|max:100',
+                'descripcion' => 'nullable|string|max:255',
                 'tventa' => 'required|string|max:10',
                 'pcosto' => 'required|numeric',
                 'porcentaje_ganancia' => 'nullable|numeric',

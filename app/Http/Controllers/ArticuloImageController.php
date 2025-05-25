@@ -17,6 +17,7 @@ class ArticuloImageController extends Controller
     }
     public function attachFiles(Request $request, VentaticketArticulo $articulo)
     {
+        logger('qwer');
         $request->validate([
             'files' => 'required|array',
             'files.*' => 'file|mimes:jpg,jpeg,png,pdf,psd|max:10240', // max 10MB

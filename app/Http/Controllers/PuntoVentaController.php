@@ -207,7 +207,12 @@ class PuntoVentaController extends Controller
     {
         $user = $request->user();
         $id = $request->ventaticket;
-        return Ventaticket::with('ventaticket_articulos', 'organization.image', 'organization.facturacion_info:infoable_id,razon_social')->findOrFail($id);
+        return Ventaticket::with(
+            'ventaticket_articulos',
+            'organization.image',
+            'organization.facturacion_info:infoable_id,razon_social',
+            'deuda'
+        )->findOrFail($id);
     }
     //tested
     public function asignarAlmacen(Request $request)
