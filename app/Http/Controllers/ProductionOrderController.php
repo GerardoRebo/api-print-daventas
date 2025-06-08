@@ -9,11 +9,21 @@ use Illuminate\Http\Request;
 
 class ProductionOrderController extends Controller
 {
-    function index()
+    function index(Request $request)
     {
+        logger($request->statuses);
+        $request->validate([
+            'cliente_id' => 'nullable|integer|exists:clientes,id',
+            'statuses' => 'nullable',
+            'statuses.*' => 'string|in:pending,design,production,finishing,finished,delivered'
+        ]);
         $user = auth()->user();
+        $cliente_id = request()->get('cliente_id', null);
+        $statuses = request()->get('statuses', []);
+        logger(request()->get('statuses'));
         $organizatinoId = $user->organization_id;
-        return ProductionOrder::with(
+        $organization = $user->organization;
+        $productionOrders = ProductionOrder::with(
             'ventaticket.almacen',
             'ventaticket.cliente',
             'ventaticket.user',
@@ -21,8 +31,17 @@ class ProductionOrderController extends Controller
             'ventaticket_articulo.product.product_components.product_hijo.product_consumibles'
         )
             ->where('organization_id', $organizatinoId)
-            ->latest()
-            ->get();
+            ->whereIn('status', $statuses)
+            ->when($cliente_id, function ($query) use ($cliente_id) {
+                $query->whereHas('ventaticket.cliente', function ($q) use ($cliente_id) {
+                    $q->where('id', $cliente_id);
+                });
+            })
+            ->paginate(1);
+        return [
+            'productionOrders' => $productionOrders,
+            'clientes' => $organization->clientes,
+        ];
     }
     function update(Request $request, ProductionOrder $productionOrder)
     {

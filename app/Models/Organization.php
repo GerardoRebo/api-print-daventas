@@ -45,6 +45,10 @@ class Organization extends Model
     {
         return $this->hasMany(PreFactura::class);
     }
+    public function clientes()
+    {
+        return $this->hasMany(Cliente::class);
+    }
     public function facturasGlobales()
     {
         return $this->hasMany(PreFacturaGlobal::class);
