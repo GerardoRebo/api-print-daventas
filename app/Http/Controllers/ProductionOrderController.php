@@ -37,7 +37,8 @@ class ProductionOrderController extends Controller
                     $q->where('id', $cliente_id);
                 });
             })
-            ->paginate(1);
+            ->orderByDesc('id')
+            ->paginate(10);
         return [
             'productionOrders' => $productionOrders,
             'clientes' => $organization->clientes,
