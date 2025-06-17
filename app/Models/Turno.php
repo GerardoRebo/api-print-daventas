@@ -113,7 +113,7 @@ class Turno extends Model
         $cotizacion->impuesto_traslado = $cotizacion->getImpuestos('traslado');
         $cotizacion->impuesto_retenido = $cotizacion->getImpuestos('retenido');
         $cotizacion->save();
-        $this->createVentaFromCotizacion($cotizacion);
+        return $this->createVentaFromCotizacion($cotizacion);
     }
     function createVentaFromCotizacion($cotizacion)
     {
@@ -132,9 +132,10 @@ class Turno extends Model
         $cotizacion->ventaticket_id = $venta->id;
         $cotizacion->save();
         foreach ($cotizacion->articulos as $co_articulo) {
-            $product = new ProductArticuloVenta($co_articulo->product_id, $co_articulo->precio, $co_articulo->cantidad);
+            $product = new ProductArticuloVenta($co_articulo->product_id, $co_articulo->precio, $co_articulo->cantidad, $co_articulo->ancho, $co_articulo->alto);
             $venta->registerArticulo($product);
         }
+        return $venta;
     }
     function createDevolucion(Ventaticket $venta): Devolucione
     {

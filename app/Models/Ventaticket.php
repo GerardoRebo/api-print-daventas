@@ -127,19 +127,7 @@ class Ventaticket extends Model
         if (!$product->enuffInventario($this->getAlmacen())) {
             throw new OperationalException("No hay suficiente inventario", 422);
         }
-        $por_descuento = null;
-
-        if ($yaExisteArticulo) {
-            $articulo = $this->getArticuloByProductId($product->id);
-
-            $articulo->precio_usado = $product->precio;
-            //calculate base impositiva
-            $articulo->cantidad += $product->cantidad;
-            // weird take a look
-            // $product->cantidad = $articulo->cantidad;
-        } else {
-            $articulo = $this->createArticulo($product);
-        }
+        $articulo = $this->createArticulo($product);
 
         //calculate base impositiva
         $articulo->setPrecioBase();
@@ -170,6 +158,10 @@ class Ventaticket extends Model
         $articulo->product_name = $product->product->name;
         $articulo->departamento_id = null;
         $articulo->cantidad = $product->cantidad;
+        $articulo->ancho = $product->ancho;
+        $articulo->alto = $product->alto;
+        $articulo->area = $product->ancho * $product->alto;
+        $articulo->area_total = $articulo->area * $product->cantidad;
         $articulo->ganancia = $ganancia;
         $articulo->pagado_en = null;
         $articulo->importe_descuento = 0;

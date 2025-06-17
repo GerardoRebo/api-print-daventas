@@ -25,13 +25,15 @@ class CotizacionController extends Controller
     public function register(Request $request)
     {
         $user = $request->user();
-        $cotizacion = $request->input('params.ticketActual');
-        $product = $request->input('params.productActualId');
-        $precio = $request->input('params.precio');
-        $cantidad = $request->input('params.cantidad');
+        $cotizacion = $request->input('ticketActual');
+        $product = $request->input('productActualId');
+        $precio = $request->input('precio');
+        $cantidad = $request->input('cantidad');
+        $ancho = $request->input('ancho');
+        $alto = $request->input('alto');
         if ($cantidad == null) return "Cantidad Nulo";
 
-        $product = new ProductArticuloCotizacion($product, $precio, $cantidad);
+        $product = new ProductArticuloCotizacion($product, $precio, $cantidad, $ancho, $alto);
         $cotizacion = Cotizacion::findOrFail($cotizacion);
         $cotizacion->registerArticulo($product);
     }
@@ -39,6 +41,8 @@ class CotizacionController extends Controller
     public function update()
     {
         $cantidad = request()->input('params.cantidad');
+        $ancho = request()->input('params.cantidad');
+        $alto = request()->input('params.cantidad');
         $precio = request()->input('params.precio');
         $articulo = request()->input('params.articulo');
         $cotizacion = request()->input('params.cotizacion');
@@ -47,7 +51,7 @@ class CotizacionController extends Controller
         $cotizacion = Cotizacion::findOrFail($cotizacion);
         $articulo = $cotizacion->getArticuloById($articulo);
         $restaCantidad = $articulo->cantidad - $cantidad;
-        $product = new ProductArticuloVenta($articulo->product_id, $precio, $cantidad);
+        $product = new ProductArticuloVenta($articulo->product_id, $precio, $cantidad, $ancho, $alto);
         $cotizacion->updateArticulo($product, $articulo, $restaCantidad);
     }
     //tested
@@ -88,8 +92,7 @@ class CotizacionController extends Controller
         }
         $cotizacion = Cotizacion::findOrFail($cotizacion);
         $cotizacion->checkAllExistingProducts();
-        $turno->finalizarCotizacion($cotizacion);
-        return;
+        return $turno->finalizarCotizacion($cotizacion);
     }
     //tested
     public function cancelarventa(Request $request)
@@ -147,7 +150,7 @@ class CotizacionController extends Controller
             throw new OperationalException("Otro usuario ya tomo esta orden", 1);
         }
         if (!$cotizacion->user_id) {
-            $cotizacion->user_id= $user->id;
+            $cotizacion->user_id = $user->id;
             $cotizacion->save();
         }
         return [$cotizacion, $cotizacion->getArticulosExtended($user)];
@@ -156,7 +159,7 @@ class CotizacionController extends Controller
     {
         $user = $request->user();
         $id = $request->cotizacion;
-        return Cotizacion::with('articulos')->findOrFail($id);
+        return Cotizacion::with('articulos', 'organization.image',)->findOrFail($id);
     }
     //tested
     public function asignarAlmacen(Request $request)
@@ -195,6 +198,7 @@ class CotizacionController extends Controller
         ]);
         $cotizacion = Cotizacion::findOrFail($cotizacionId);
         $cotizacion->archivado;
+        $cotizacion->save();
         return response()->json(['success' => true]);
     }
     public function getexistencias(Request $request)
@@ -224,8 +228,8 @@ class CotizacionController extends Controller
             ->where('pendiente', 1)
             ->where('archivado', 0);
         $pendientes = clone $base;
-        $base = $base->where('user_id', $user->id)->get() ;
-        $pendientes = $pendientes->whereNull('user_id')->get() ;
+        $base = $base->where('user_id', $user->id)->get();
+        $pendientes = $pendientes->whereNull('user_id')->get();
         $pCollection = $pendientes->concat($base);
         $pCollection = $pCollection->map(function ($item, $key) {
             $total = $item->articulos->sum('importe');
