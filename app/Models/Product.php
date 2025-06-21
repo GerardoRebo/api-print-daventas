@@ -446,4 +446,9 @@ class Product extends Model
         }
         return $cantidad;
     }
+    public function enuffInventario($almacenId, $cantidad)
+    {
+        $cantidadActual = $this->getCantidadActual($almacenId);
+        return $cantidadActual >= $cantidad;
+    }
 }

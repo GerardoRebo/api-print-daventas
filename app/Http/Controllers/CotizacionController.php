@@ -92,7 +92,20 @@ class CotizacionController extends Controller
         }
         $cotizacion = Cotizacion::findOrFail($cotizacion);
         $cotizacion->checkAllExistingProducts();
-        return $turno->finalizarCotizacion($cotizacion);
+        return $turno->guardarCotizacion($cotizacion);
+    }
+    public function finalizeCotization(Request $request, Cotizacion $cotization)
+    {
+        /** @var User $user */
+        $user = $request->user()->load('configuration');
+
+        $turno = $user->getLatestTurno();
+
+        if (!$turno) {
+            throw new OperationalException("No has habilitado la caja, seras redireccionado", 1);
+        }
+        $cotization->checkAllExistingProducts();
+        return $turno->finzalizarCotizacion($cotization);
     }
     //tested
     public function cancelarventa(Request $request)
@@ -141,11 +154,10 @@ class CotizacionController extends Controller
         $cotizacion = $user->getCotizacionAlmacenCliente($user);
         return [$cotizacion, $cotizacion->getArticulosExtended($user)];
     }
-    public function specific(Request $request)
+    public function show(Request $request, Cotizacion $cotizacion)
     {
         $user = $request->user();
-        $id = request()->input('cotizacion');
-        $cotizacion = Cotizacion::findOrFail($id);
+        $cotizacion->load('ventaticket');
         if ($cotizacion->user_id && $cotizacion->user_id != $user->id) {
             throw new OperationalException("Otro usuario ya tomo esta orden", 1);
         }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Exceptions\OperationalException;
 use App\MyClasses\PuntoVenta\ProductArticuloVenta;
 use App\MyClasses\PuntoVenta\PuntoVentaCliente;
 use App\MyClasses\PuntoVenta\TicketVenta;
@@ -136,6 +137,31 @@ class Turno extends Model
             $venta->registerArticulo($product);
         }
         return $venta;
+    }
+    function guardarCotizacion(Cotizacion $cotizacion)
+    {
+        $cotizacion->enviada_en = now();
+        $cotizacion->esta_abierto = false;
+        $cotizacion->turno_id = $this->id;
+        $cotizacion->user_id = $this->user->id;
+        $cotizacion->subtotal = $cotizacion->getSubTotal();
+        $cotizacion->total = $cotizacion->getTotal();
+
+        $cotizacion->descuento = $cotizacion->getDescuento();
+        $cotizacion->impuesto_traslado = $cotizacion->getImpuestos('traslado');
+        $cotizacion->impuesto_retenido = $cotizacion->getImpuestos('retenido');
+        $cotizacion->save();
+        return $cotizacion;
+        // $this->createVentaFromCotizacion($cotizacion);
+    }
+    function finzalizarCotizacion(Cotizacion $cotizacion)
+    {
+        foreach ($cotizacion->articulos as $articulo) {
+            if (!$articulo->product->enuffInventario($cotizacion->almacen_id, $articulo->cantidad)) {
+                throw new OperationalException("No hay suficiente inventario", 422);
+            }
+        }
+        $this->createVentaFromCotizacion($cotizacion);
     }
     function createDevolucion(Ventaticket $venta): Devolucione
     {

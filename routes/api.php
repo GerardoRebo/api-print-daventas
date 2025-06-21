@@ -188,18 +188,18 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     });
     Route::controller(CotizacionController::class)->prefix('cotizacion')->name('cotizacion.')->group(function () {
 
+        Route::get('/', 'getVT')->name('getVT');
         Route::post('/sendVentaToWha/{ticket}', 'sendVentaToWha')->name('sendVentaToWha');
         Route::post('/archivar/{cotizacionId}', 'archivar')->name('archivar');
-        Route::get('/specific', 'specific')->name('specific');
         Route::get('/misventas', 'misventas')->name('misventas');
         Route::get('/setpendiente', 'setpendiente')->name('setpendiente');
         Route::post('/setcliente', 'setcliente')->name('setcliente');
         Route::get('/pendientes', 'pendientes')->name('pendientes');
         Route::post('/register', 'register')->name('register');
-        Route::get('/cotizacion', 'getVT')->name('getVT');
         Route::post('/destroyarticulo', 'destroyarticulo')->name('destroyarticulo');
         Route::post('/update', 'update')->name('update');
         Route::post('/guardarventa', 'guardarventa')->name('guardarventa');
+        Route::post('/{cotization}/finalize', 'finalizeCotization')->name('finalizeCotization');
         Route::post('/borrarticket', 'borrarticket')->name('borrarticket');
         Route::get('/getexistencias', 'getexistencias')->name('getexistencias');
         Route::get('/asignaralmacen', 'asignaralmacen')->name('asignaralmacen');
@@ -207,6 +207,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/setnombreticket', 'setnombreticket')->name('setnombreticket');
         Route::post('/cancelarventa', 'cancelarventa')->name('cancelarventa');
         Route::post('/verificarVentas', 'verificarVentas')->name('verificarVentas');
+        Route::get('/{cotizacion}', 'show')->name('show');
     });
     Route::controller(MovimientoController::class)->prefix('movimientos')->name('movimientos.')->group(function () {
         Route::post('/cambiaPrecioGeneral', 'cambiaPrecioGeneral')->name('cambiaPrecioGeneral');
