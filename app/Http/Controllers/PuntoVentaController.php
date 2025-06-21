@@ -211,7 +211,7 @@ class PuntoVentaController extends Controller
             'ventaticket_articulos',
             'organization.image',
             'organization.facturacion_info:infoable_id,razon_social',
-            'deuda'
+            'deuda.abonos'
         )->findOrFail($id);
     }
     //tested
