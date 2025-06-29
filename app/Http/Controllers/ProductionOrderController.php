@@ -11,7 +11,6 @@ class ProductionOrderController extends Controller
 {
     function index(Request $request)
     {
-        logger($request->statuses);
         $request->validate([
             'cliente_id' => 'nullable|integer|exists:clientes,id',
             'statuses' => 'nullable',
@@ -20,7 +19,6 @@ class ProductionOrderController extends Controller
         $user = auth()->user();
         $cliente_id = request()->get('cliente_id', null);
         $statuses = request()->get('statuses', []);
-        logger(request()->get('statuses'));
         $organizatinoId = $user->organization_id;
         $organization = $user->organization;
         $productionOrders = ProductionOrder::with(
