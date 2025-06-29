@@ -117,34 +117,14 @@ class CotizacionController extends Controller
         if (!$turno) {
             throw new OperationalException("No has habilitado la caja", 1);
         }
-        $cotizacion = new TicketVenta($cotizacion);
+        $cotizacion = Cotizacion::findOrFail($cotizacion);
 
-        if ($cotizacion->ticket->facturado_en) {
+        if ($cotizacion->facturado_en) {
             throw new Exception("No es posible cancelar, el ticket ha sido facturado", 1);
         }
-
-        $almacen = $cotizacion->getAlmacen();
-        $cotizacion->createInventarioHistorial("increment", "Cancelación Venta");
-
-        $users = $user->getUsersInMyOrg();
-        Notification::send($users, new VentaRealizada($user->name, $cotizacion->getConsecutivo(),  'Venta Cancelada'));
-
-        foreach ($cotizacion->getArticulos() as $articulo) {
-            $articulo->incrementInventario($articulo->cantidad);
-        }
-
-        $cotizacion->ticket->update([
-            'esta_cancelado' => 1,
+        $cotizacion->update([
+            'cancelado' => 1,
         ]);
-        if ($cotizacion->getFormaPago() == 'C') {
-            $turno->increment('devoluciones_ventas_credito', $cotizacion->getTotal());
-            $rA = new RealizarAbono;
-            $rA->realizarAbono($cotizacion->ticket->deuda->id, $user, null, "Cancelacion venta", $turno);
-        } else {
-            $turno->increment('devoluciones_ventas_efectivo', $cotizacion->getTotal());
-            $turno->decrement('efectivo_al_cierre', $cotizacion->getTotal());
-        }
-        $turno->decrement('acumulado_ganancias', $cotizacion->ticket->ganancia);
         return;
     }
     public function getVT(Request $request)
