@@ -17,7 +17,6 @@ class ArticuloImageController extends Controller
     }
     public function attachFiles(Request $request, VentaticketArticulo $articulo)
     {
-        logger('qwer');
         $request->validate([
             'files' => 'required|array',
             'files.*' => 'file|mimes:jpg,jpeg,png,pdf,psd|max:10240', // max 10MB
@@ -25,7 +24,11 @@ class ArticuloImageController extends Controller
         $disk = App::environment('production') ? 's3' : 'public';
 
         foreach ($request->file('files') as $uploadedFile) {
-            $path = $uploadedFile->store('public/articulos', $disk);
+            if (app()->isLocal()) {
+                $path = $uploadedFile->store('articulos', $disk);
+            } else {
+                $path = $uploadedFile->store('public/articulos', $disk);
+            }
             $articulo->files()->create([
                 'filename' => $uploadedFile->getClientOriginalName(),
                 'path' => $path,
@@ -41,5 +44,35 @@ class ArticuloImageController extends Controller
         Storage::delete($articuloFile->path);
         $articuloFile->delete();
         return response()->json(['message' => 'File deleted successfully.'], 200);
+    }
+    function download(ArticuloFile  $file)
+    {
+        //path articulos/z8uKdTnrDwX4ZI93EuAWy0uYKS6liG6KEjqOhhKf.jpg
+        $disk = App::environment('production') ? 's3' : 'public';
+        if (Storage::disk($disk)->exists($file->path)) {
+            return Storage::disk($disk)->download($file->path, $file->filename, ['Content-Type' => $file->mime_type]);
+        }
+        return response()->json(['message' => 'File not found.'], 404);
+    }
+
+    function animate(Request $request)
+    {
+        $request->validate([
+            'source_url' => 'required|url',
+            'text' => 'required|string',
+        ]);
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Basic ' . env('DID_API_KEY'),
+            'Content-Type' => 'application/json',
+        ])->post('https://api.d-id.com/animations', [
+            'source_url' => $request->source_url,
+            'script' => [
+                'type' => 'text',
+                'input' => $request->text,
+            ],
+        ]);
+
+        return response()->json($response->json(), $response->status());
     }
 }
