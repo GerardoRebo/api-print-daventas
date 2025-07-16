@@ -58,7 +58,6 @@ class ArticuloImageController extends Controller
 
     function animate(Request $request, ArticuloFile $file)
     {
-        return $file;
         $request->validate([
             'source_url' => 'required|url',
             'text' => 'required|string',
@@ -72,6 +71,34 @@ class ArticuloImageController extends Controller
             'driver_url' => "bank://nostalgia/",
         ]);
 
-        return response()->json($response->json(), $response->status());
+        if ($response->successful()) {
+            $dIdResponse = $response->json();
+            $dIdAnimationId = $dIdResponse['id'] ?? null;
+
+            if ($dIdAnimationId) {
+                $articulo = $file->articulo; // Get the parent VentaticketArticulo
+
+                $newArticuloFile = $articulo->files()->create([
+                    'd_id_animation_id' => $dIdAnimationId,
+                    'filename' => 'animated_video_' . $dIdAnimationId . '.mp4', // Placeholder filename
+                    'path' => 'pending_animation_' . $dIdAnimationId, // Placeholder path
+                    'mime_type' => 'video/mp4',
+                    'size' => 0, // Placeholder size
+                ]);
+
+                return response()->json([
+                    'message' => 'Animation request sent and ArticuloFile created.',
+                    'd_id_response' => $dIdResponse,
+                    'new_articulo_file' => $newArticuloFile,
+                ], 201);
+            } else {
+                return response()->json([
+                    'message' => 'D-ID API response missing animation ID.',
+                    'd_id_response' => $dIdResponse,
+                ], 500);
+            }
+        } else {
+            return response()->json($response->json(), $response->status());
+        }
     }
 }

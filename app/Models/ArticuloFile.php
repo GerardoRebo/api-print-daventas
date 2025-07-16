@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Storage;
 class ArticuloFile extends Model
 {
     use HasFactory;
-    protected $fillable = ['filename', 'path', 'mime_type', 'size'];
+    protected $fillable = ['filename', 'path', 'mime_type', 'size', 'd_id_animation_id'];
     protected $appends = ['url'];
 
     public function articulo()

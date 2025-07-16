@@ -27,6 +27,7 @@ use App\Http\Controllers\TiendaController;
 use App\Http\Controllers\TiendaOrderController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WhaSessionController;
+use App\Http\Controllers\WebhookController;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
@@ -183,7 +184,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/{articulo}/files', 'attachFiles')->name('attachFiles');
         Route::get('files/{file}/download', 'download')->name('download');
         Route::delete('_files/{file}', 'articuloFilesDelete')->name('files.delete');
-        Route::post('/animate', 'animate')->name('animate');
+        Route::post('files/{file}/animate', 'animate')->name('animate');
     });
     Route::controller(ArticuloImageController::class)->prefix('articulos_files')->name('articulos_files.')->group(function () {
         Route::delete('{articuloFile}', 'articuloFilesDelete')->name('files.delete');
@@ -419,3 +420,5 @@ Route::middleware('auth.shop_tienda')->prefix('tienda/')->name('tienda.')->group
         Route::post('/', [TiendaOrderController::class, 'store']);
     });
 });
+
+Route::post('/webhook', [WebhookController::class, 'handle']);
