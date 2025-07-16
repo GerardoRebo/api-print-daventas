@@ -6,6 +6,7 @@ use App\Models\ArticuloFile;
 use App\Models\VentaticketArticulo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
 class ArticuloImageController extends Controller
@@ -55,8 +56,9 @@ class ArticuloImageController extends Controller
         return response()->json(['message' => 'File not found.'], 404);
     }
 
-    function animate(Request $request)
+    function animate(Request $request, ArticuloFile $file)
     {
+        return $file;
         $request->validate([
             'source_url' => 'required|url',
             'text' => 'required|string',
@@ -66,11 +68,8 @@ class ArticuloImageController extends Controller
             'Authorization' => 'Basic ' . env('DID_API_KEY'),
             'Content-Type' => 'application/json',
         ])->post('https://api.d-id.com/animations', [
-            'source_url' => $request->source_url,
-            'script' => [
-                'type' => 'text',
-                'input' => $request->text,
-            ],
+            'source_url' => $file->url,
+            'driver_url' => "bank://nostalgia/",
         ]);
 
         return response()->json($response->json(), $response->status());
