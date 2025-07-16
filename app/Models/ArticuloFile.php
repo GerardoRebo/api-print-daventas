@@ -20,7 +20,9 @@ class ArticuloFile extends Model
     protected function url(): Attribute
     {
         return Attribute::make(
-            get: fn() => asset(Storage::url($this->path))
+            get: fn() => str_starts_with($this->path, 'http://') || str_starts_with($this->path, 'https://')
+                ? $this->path
+                : asset(Storage::url($this->path))
         );
     }
 }

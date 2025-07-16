@@ -64,11 +64,12 @@ class ArticuloImageController extends Controller
         ]);
 
         $response = Http::withHeaders([
-            'Authorization' => 'Basic ' . env('DID_API_KEY'),
+            'Authorization' => 'Basic ' . config('d-id.api_key'),
             'Content-Type' => 'application/json',
         ])->post('https://api.d-id.com/animations', [
             'source_url' => $file->url,
             'driver_url' => "bank://nostalgia/",
+            "webhook" => config('d-id.webhook_url')
         ]);
 
         if ($response->successful()) {
