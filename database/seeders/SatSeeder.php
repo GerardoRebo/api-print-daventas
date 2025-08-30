@@ -17,7 +17,7 @@ class SatSeeder extends Seeder
   public function run(): void
   {
     LazyCollection::make(function () {
-      $handle = fopen(Storage::url('public/unidad.csv'), 'r');
+      $handle = fopen(Storage::path('public/unidad.csv'), 'r');
 
       while (($line = fgetcsv($handle, 4096)) !== false) {
         $dataString = implode(", ", $line);
@@ -40,7 +40,7 @@ class SatSeeder extends Seeder
         DB::table('clave_unidads')->insert($records);
       });
     LazyCollection::make(function () {
-      $handle = fopen(Storage::url('public/clave.csv'), 'r');
+      $handle = fopen(Storage::path('public/clave.csv'), 'r');
 
       while (($line = fgetcsv($handle, 4096)) !== false) {
         $dataString = implode(", ", $line);
