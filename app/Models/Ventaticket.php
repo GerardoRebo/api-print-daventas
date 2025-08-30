@@ -306,13 +306,6 @@ class Ventaticket extends Model
             }
             $preArticulo->save();
         }
-        $preFactura->load('articulos.product', 'articulos.taxes');
-
-        $preFactura->subtotal = $preFactura->articulos->sum('importe');
-        $preFactura->descuento = $preFactura->articulos->sum('descuento');
-        $preFactura->impuesto_traslado = $preFactura->articulos->sum('impuesto_traslado');
-        $preFactura->impuesto_retenido = $preFactura->articulos->sum('impuesto_retenido');
-        $preFactura->setTotal();
         $preFactura->save();
         return $preFactura;
     }
