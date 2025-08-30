@@ -6,6 +6,7 @@ use App\Exceptions\OperationalException;
 use App\MyClasses\Factura\ComprobanteImpuestos;
 use App\MyClasses\Factura\FacturaService;
 use App\MyClasses\PuntoVenta\ProductArticuloVenta;
+use App\Services\Cfdi\CfdiUtilsBuilder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
@@ -249,14 +250,20 @@ class Ventaticket extends Model
             throw new OperationalException("El ticket que quieres facturar no tiene especificado un cliente", 1);
         }
         foreach ($this->ventaticket_articulos as $articulo) {
-            if (!$articulo->product->taxes->count()) {
-                throw new OperationalException("Impuestos no configurados en el producto" . $articulo->product->name, 1);
+            if ($articulo->product->ObjetoImp === null) {
+                throw new OperationalException("Objeto de impuesto no seleccionado para el producto: " . $articulo->product->name, 1);
+            }
+            if ($articulo->product->ObjetoImp == "01") {
+                continue;
+            }
+            if (!($articulo->product->taxes->count() || $articulo->taxes->count()) && $articulo->product->ObjetoImp == "02") {
+                throw new OperationalException("Impuestos no configurados en el producto: " . $articulo->product->name, 1);
             }
             if (!$articulo->product->c_ClaveUnidad) {
-                throw new OperationalException("Clave unidad no configurada en el producto" . $articulo->product->name, 1);
+                throw new OperationalException("Clave unidad no configurada en el producto: " . $articulo->product->name, 1);
             }
             if (!$articulo->product->c_claveProdServ) {
-                throw new OperationalException("Clave Producto Servicio no configurada en el producto" . $articulo->product->name, 1);
+                throw new OperationalException("Clave Producto Servicio no configurada en el product" . $articulo->product->name, 1);
             }
         };
         $facturaHelper = new FacturaService;
@@ -317,40 +324,12 @@ class Ventaticket extends Model
 
         /** @var PreFactura $preFactura */
         $preFactura = $this->createPreFactura();
-        $oComprobante = $preFactura->initializeComprobante($serie, $formaPago, $metodoPago);
+        $preFactura->load('articulos.taxes');
+        $cfdiUtils = new CfdiUtilsBuilder($preFactura);
+        $xml = $cfdiUtils->createFromVenta($serie, $formaPago, $metodoPago, $usoCfdi);
 
-        //emisor
-        $oEmisor = $preFactura->createEmisor();
-        //receptor
-        $oReceptor = $preFactura->createReceptor($usoCfdi);
-
-        //conceptos
-        $lstConceptos = $preFactura->createConceptos();
-
-        //NODO IMPUESTO
-
-        $oIMPUESTOS = new ComprobanteImpuestos();
-
-        $facturaImpuestos = $preFactura->getImpuestos();
-        if ($facturaImpuestos['retenidos']) {
-            $oIMPUESTOS->TotalImpuestosRetenidos = round($preFactura->getSumatoriaImpuestos('retenido'), 2);
-            $oIMPUESTOS->Retenciones = $facturaImpuestos['retenidos'];
-        }
-        if ($facturaImpuestos['trasladados']) {
-            $oIMPUESTOS->TotalImpuestosTrasladados = round($preFactura->getSumatoriaImpuestos('traslado'), 2);
-            $oIMPUESTOS->Traslados = $facturaImpuestos['trasladados'];
-        }
-
-        //agregamos impuesto a comprobante
-        $oComprobante->Impuestos = $oIMPUESTOS;
-        $oComprobante->Emisor = $oEmisor;
-        $oComprobante->Receptor = $oReceptor;
-        $oComprobante->Conceptos = $lstConceptos;
-
-        $MiJson = "";
-        $MiJson = json_encode($oComprobante);
-        $jsonPath = 'factura_json/' . $this->id;
-        Storage::disk('local')->put($jsonPath, $MiJson);
+        $jsonPath = 'facturaTmp/XmlDesdePhpSinTimbrar.xml';
+        Storage::disk('local')->put($jsonPath, $xml);
 
         $preFactura->callServie($jsonPath);
 
@@ -359,6 +338,7 @@ class Ventaticket extends Model
         $fService = new FacturaService;
         $fService->storePdf('facturaTmp/XmlDesdePhpTimbrado.xml', $user, $pdfFacturaPath);
         $this->pdf_factura_path = $pdfFacturaPath . ".pdf";
+        $this->cfdi_uuid = $fService->uuid;
         $this->save();
     }
     public function generateTicketText()

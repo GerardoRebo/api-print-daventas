@@ -378,7 +378,7 @@ class PuntoVentaController extends Controller
         if (!$saldoScalar) {
             throw new OperationalException("No cuentas con suficientes timbres fiscales, , contacta con la administración para solicitar timbres fiscales", 1);
         }
-        $ventaticket->facturarVenta($formaPago, $metodoPago, $usoCfdi, $serie, $clavePrivadaLocal);
+        return $ventaticket->facturarVenta($formaPago, $metodoPago, $usoCfdi, $serie, $clavePrivadaLocal);
 
         return "Facturacion Exitosa";
     }
