@@ -572,6 +572,12 @@ class ProductController extends Controller
 
         return $product;
     }
+    function updateObjetoImp(Request $request, Product $product)
+    {
+        $product->ObjetoImp = $request->ObjetoImp;
+        $product->save();
+        return $product;
+    }
     public function generateDesktopProducts()
     {
         $user = auth()->user();

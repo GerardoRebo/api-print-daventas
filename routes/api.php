@@ -266,6 +266,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/getDescuentos', 'getDescuentos')->name('getDescuentos');
         Route::post('/enviarDescuento', 'enviarDescuento')->name('enviarDescuento');
         Route::post('/eliminarDescuento', 'eliminarDescuento')->name('eliminarDescuento');
+        Route::put('/{product}/updateObjetoImp', 'updateObjetoImp')->name('updateObjetoImp');
+        Route::post('/register_service', 'register_service')->name('register_service');
 
         Route::post('/desktop', 'generateDesktopProducts')->name('desktop.generate');
         Route::get('/desktop/download', 'desktopDownload')->name('desktop.download');
