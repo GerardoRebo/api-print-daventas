@@ -15,6 +15,7 @@ use App\MyClasses\Factura\ComprobanteReceptor;
 use App\MyClasses\Factura\FacturaService;
 use Illuminate\Support\Facades\Crypt;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 use Exception;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -221,7 +222,7 @@ class PreFactura extends Model
                 Storage::disk('local')->delete($facturaData['cer_path']);
                 Storage::disk('local')->delete($facturaData['key_path']);
             } catch (\Throwable $th) {
-                //throw $th;
+                throw $th;
             }
         }
         try {
@@ -232,9 +233,13 @@ class PreFactura extends Model
                 $this->facturado_en = getMysqlTimestamp($user->configuration?->time_zone);
                 $this->save();
                 $this->consumeTimbre(1);
+            } else {
+                $texto = $result->output();
+                $resultado = Str::after($texto, 'Error al timbrar');
+                throw new OperationalException($resultado, 1);
             }
         } catch (\Throwable $th) {
-            //throw $th;
+            throw $th;
         }
         $this->ventaticket->save();
     }
