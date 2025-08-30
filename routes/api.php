@@ -185,6 +185,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('files/{file}/download', 'download')->name('download');
         Route::delete('_files/{file}', 'articuloFilesDelete')->name('files.delete');
         Route::post('files/{file}/animate', 'animate')->name('animate');
+        Route::post('files/{file}/checkStatusAnimations', 'checkStatusAnimations')->name('checkStatusAnimations');
     });
     Route::controller(ArticuloImageController::class)->prefix('articulos_files')->name('articulos_files.')->group(function () {
         Route::delete('{articuloFile}', 'articuloFilesDelete')->name('files.delete');

@@ -13,7 +13,7 @@ class ArticuloFile extends Model
     protected $fillable = ['filename', 'path', 'mime_type', 'size', 'd_id_animation_id'];
     protected $appends = ['url'];
 
-    public function articulo()
+    public function ventaticket_articulo()
     {
         return $this->belongsTo(VentaticketArticulo::class);
     }
