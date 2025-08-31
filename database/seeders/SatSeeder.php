@@ -9,15 +9,18 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\LazyCollection;
 
+use function PHPUnit\Framework\fileExists;
+
 class SatSeeder extends Seeder
 {
   /**
    * Run the database seeds.
    */
+
   public function run(): void
   {
     LazyCollection::make(function () {
-      $handle = fopen(Storage::path('public/unidad.csv'), 'r');
+      $handle = fopen(public_path('unidad.csv'), 'r');
 
       while (($line = fgetcsv($handle, 4096)) !== false) {
         $dataString = implode(", ", $line);
@@ -40,7 +43,7 @@ class SatSeeder extends Seeder
         DB::table('clave_unidads')->insert($records);
       });
     LazyCollection::make(function () {
-      $handle = fopen(Storage::path('public/clave.csv'), 'r');
+      $handle = fopen(public_path('clave.csv'), 'r');
 
       while (($line = fgetcsv($handle, 4096)) !== false) {
         $dataString = implode(", ", $line);
