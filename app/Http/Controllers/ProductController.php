@@ -361,6 +361,7 @@ class ProductController extends Controller
         $newProduct->es_kit = $request->es_kit;
         $newProduct->consumible = $request->consumible;
         $newProduct->usa_medidas = $request->usa_medidas;
+        $newProduct->necesita_produccion = $request->necesita_produccion ?? false;
         $newProduct->save();
 
         $precioAlmacens = [];
