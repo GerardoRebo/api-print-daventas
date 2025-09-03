@@ -85,37 +85,14 @@ class Abono extends Model
     {
         return $this->morphMany(SystemFolio::class, 'facturable');
     }
-    function facturar($formaPago, $user, $cantidad)
+    function facturar($formaPago, $user, $cantidad, $serie)
     {
-        // return $this->latestAbono;
-        $serie = 'P';
-        $oComprobante = $this->initializeComprobante($serie);
+        $cfdiUtils = new CfdiUtilsPagoBuilder($this);
+        $xml = $cfdiUtils->createFromAbono($serie, $formaPago, $cantidad);
+        $jsonPath = 'facturaTmp/XmlDesdePhpSinTimbrar.xml';
+        Storage::disk('local')->put($jsonPath, $xml);
 
-        //emisor
-        $oEmisor = $this->createEmisor();
-        //receptor
-        $oReceptor = $this->createReceptor();
-        //conceptos
-        $lstConceptos = $this->createConceptos();
-
-        $oComprobante->Emisor = $oEmisor;
-        $oComprobante->Receptor = $oReceptor;
-        $oComprobante->Conceptos = $lstConceptos;
-
-        $MiJson = "";
-        $MiJson = json_encode($oComprobante);
-        $jsonPath = 'factura_json/' . $this->id;
-        Storage::disk('local')->put($jsonPath, $MiJson);
-
-        $oPagos = $this->createPagos($formaPago, $cantidad);
-
-        $pagoJson = "";
-        $pagoJson = json_encode($oPagos);
-        $jsonPathPago = 'factura_json_pago/' . $this->id;
-        Storage::disk('local')->put($jsonPathPago, $pagoJson);
-
-        $this->callServie($jsonPath, $jsonPathPago);
-        return;
+        $this->callServie($jsonPath, $jsonPath);
 
         $pdfFacturaPath = "pdf_factura_pagos/$user->organization_id/" . $this->deuda->ventaticket_id;
         /* create pdf */
@@ -124,7 +101,6 @@ class Abono extends Model
         $this->pdf_factura_path = $pdfFacturaPath . ".pdf";
         $this->save();
     }
-
     function callServie($jsonPath, $jsonPathPago)
     {
         $facturaData = $this->getFacturaData();
@@ -178,7 +154,6 @@ class Abono extends Model
                 Storage::put($xmlFacturaPath . ".xml", Storage::disk('local')->get('facturaTmp/XmlDesdePhpTimbrado.xml'));
                 $this->xml_factura_path = $xmlFacturaPath . ".xml";
                 $this->facturado_en = getMysqlTimestamp($user->configuration?->time_zone);
-                logger('hjere');
                 logger($this->xml_factura_path);
                 $this->save();
                 $this->consumeTimbre(1);
