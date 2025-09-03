@@ -386,20 +386,26 @@ class PuntoVentaController extends Controller
     {
         $user = auth()->user();
         $organization = $user->organization;
+        // if ($ventaticket->ventaticket_articulos->count()) {
+        //     throw new OperationalException("El ticket no debe tener articulos", 1);
+        // }
         $ventaticket->retention = true;
         $ventaticket->save();
-        $retentionRules = $organization->getClientRetentionRules($ventaticket->cliente->regimen_fiscal);
+        $retentionRules = $organization->getClientRetentionRules($ventaticket?->cliente?->regimen_fiscal);
         foreach ($retentionRules as $rule) {
-            $ventaticket->retention_taxes()->create([
+            $ventaticket->retention_rules()->create([
                 'retention_rule_id' => $rule->id,
-                'c_impuesto' => $rule->tax->c_impuesto,
-                'retention_rule_id' => $rule->id,
-                'tasa_cuota' => $rule->tax->tasa_cuota,
+                'organization_id' => $organization->id,
+                'regimen_fiscal' => $ventaticket->cliente->regimen_fiscal,
+                'isr_percentage' => $rule->isr_percentage,
+                'iva_percentage' => $rule->iva_percentage,
             ]);
         }
-        foreach ($ventaticket->ventaticket_articulos as $articulo) {
-            $articulo->impuesto_retenido = $articulo->getRetencionTaxesAmount();
-            $articulo->save();
+        if ($ventaticket->esta_abierto) {
+            foreach ($ventaticket->ventaticket_articulos as $articulo) {
+                $articulo->impuesto_retenido = $articulo->getRetencionTaxesAmount();
+                $articulo->save();
+            }
         }
 
         return $ventaticket;
