@@ -6,6 +6,7 @@ use App\Exceptions\OperationalException;
 use App\Models\Almacen;
 use App\Models\Invitation;
 use App\Models\Organization;
+use App\Models\PaqueteTimbre;
 use App\Models\Plan;
 use App\Models\PlanPrice;
 use App\Models\PreFactura;
@@ -581,7 +582,19 @@ class OrganizacionController extends Controller
         $user = auth()->user();
         return response()->json([
             'success' => true,
-            'saldo' => $user->organization->latestFoliosUtilizado,
+            'saldo' => $user->organization->getOverallTimbresCount(),
+        ]);
+    }
+    function facturacionData()
+    {
+        $paquetes = PaqueteTimbre::where('active', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        $user = auth()->user();
+        return response()->json([
+            'success' => true,
+            'saldo' => $user->organization->getOverallTimbresCount(),
+            'paquetes' => $paquetes,
         ]);
     }
     function global(Request $request)
@@ -621,7 +634,7 @@ class OrganizacionController extends Controller
         $year = $request->year;
         $mes = $request->mes;
         $serie = $request->serie;
-        $c_periodicidad = $request->c_periodicidad;
+        // $c_periodicidad = $request->c_periodicidad;
         $clavePrivadaLocal = $request->clave_privada_local;
         $usoCfdi = "S01";
         $formaPago =  $request->forma_pago;
@@ -629,8 +642,8 @@ class OrganizacionController extends Controller
         $user = auth()->user();
         $organization = $user->organization;
 
-        $saldo = $organization->latestFoliosUtilizado;
-        $saldoScalar = $saldo?->saldo ?? 0;
+        $saldo = $organization->getOverallTimbresCount();
+        $saldoScalar = $saldo;
         if (!$saldoScalar) {
             throw new OperationalException("No cuentas con suficientes timbres fiscales, , contacta con la administración para solicitar timbres fiscales", 1);
         }

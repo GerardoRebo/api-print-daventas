@@ -70,6 +70,7 @@ class CreditoController extends Controller
     public function realizarabono(Request $request, Deuda $deuda)
     {
         $validated = $request->validate([
+            'serie' => 'nullable',
             'cantidad' => 'required|numeric',
             'comments' => 'nullable|string',
             'facturar' => 'required|boolean',
@@ -84,6 +85,7 @@ class CreditoController extends Controller
             throw new OperationalException("No has habilitado turno", 1);
         }
 
+        $serie = isset($validated['serie']) ? $validated['serie'] : null;
         $cantidad = $validated['cantidad'];
         $comments = $validated['comments'];
         $formaPago = $validated['forma_pago'];
@@ -93,13 +95,16 @@ class CreditoController extends Controller
         $turno->incrementAbonoEfectivo($cantidad);
         $abono = $rA->realizarabono($deuda->id, $user, $cantidad, $comments, $turno);
         if (!$facturar) return;
+        if (!$deuda->ventaticket->facturado_en) {
+            throw new OperationalException("No se puede facturar un abono a una venta no facturada", 1);
+        }
         //check folios fiscales
-        $saldo = $user->organization->latestFoliosUtilizado;
-        $saldoScalar = $saldo?->saldo ?? 0;
+        $saldo = $user->organization->getOverallTimbresCount();
+        $saldoScalar = $saldo;
         if (!$saldoScalar) {
             throw new OperationalException("No cuentas con suficientes timbres fiscales, , contacta con la administración para solicitar timbres fiscales", 1);
         }
-        $abono->facturar($formaPago, $user, $cantidad);
+        $abono->facturar($formaPago, $user, $cantidad, $serie);
     }
     public function facturarabono(Request $request, Abono $abono)
     {

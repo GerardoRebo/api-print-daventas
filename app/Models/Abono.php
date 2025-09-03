@@ -81,6 +81,10 @@ class Abono extends Model
     {
         return $this->morphMany(FoliosUtilizado::class, 'facturable');
     }
+    public function system_folios(): MorphMany
+    {
+        return $this->morphMany(SystemFolio::class, 'facturable');
+    }
     function facturar($formaPago, $user, $cantidad)
     {
         // return $this->latestAbono;
@@ -120,74 +124,7 @@ class Abono extends Model
         $this->pdf_factura_path = $pdfFacturaPath . ".pdf";
         $this->save();
     }
-    function createPagos($formaPago, $cantidad)
-    {
-        $baseIva16 = round($cantidad / (1 + .16));
-        $impuestoIva16 = round($cantidad - $baseIva16);
-        $oPagos = new Pagos();
-        $lstPagos = [];
 
-        $oPagosTotales = new PagosTotales;
-        $oPagosTotales->TotalTrasladosBaseIVA16 = $baseIva16;
-        $oPagosTotales->TotalTrasladosImpuestoIVA16 = $impuestoIva16;
-        $oPagosTotales->MontoTotalPagos = $cantidad;
-
-        $oPagos->Totales = $oPagosTotales;
-
-        $oPago = new PagosPago();
-        $oPago->MonedaP = 'MXN';
-        $pagado_en = Carbon::parse(getMysqlTimestamp());
-        $oPago->FechaPago = $pagado_en->format("Y-m-d\TH:i:s");
-        $oPago->FormaDePagoP = $formaPago;
-        $oPago->Monto = $cantidad;
-        $oPago->TipoCambioP = '1';
-
-        $lstDoctoRelacionado = [];
-        $oDoctoRelacionado = new PagosPagoDoctoRelacionado;
-        $oDoctoRelacionado->IdDocumento = "bfc36522-4b8e-45c4-8f14-d11b289f9eb7";
-        $oDoctoRelacionado->MonedaDR = "MXN";
-        $oDoctoRelacionado->NumParcialidad = "2";
-        $oDoctoRelacionado->ImpSaldoAnt = $cantidad;
-        $oDoctoRelacionado->ImpPagado = $cantidad;
-        $oDoctoRelacionado->ImpSaldoInsoluto = "0.00";
-        $oDoctoRelacionado->ObjetoImpDR = "02";
-        $oDoctoRelacionado->EquivalenciaDR = "1";
-        $oDoctoRelacionado->ObjetoImpDR = "02";
-
-        // Create the "TrasladosDR" object and set its properties
-        $oTrasladosDR = new PagosPagoDoctoRelacionadoImpuestosDRTrasladoDR();
-        $oTrasladosDR->BaseDR = $baseIva16;
-        $oTrasladosDR->ImpuestoDR = "002";
-        $oTrasladosDR->TipoFactorDR = "Tasa";
-        $oTrasladosDR->TasaOCuotaDR = "0.160000";
-        $oTrasladosDR->ImporteDR = $impuestoIva16;
-
-        // Create the "ImpuestosDR" object and add the "TrasladosDR" object to it
-        $oImpuestosDR = new PagosPagoDoctoRelacionadoImpuestosDR();
-        $oImpuestosDR->TrasladosDR = [$oTrasladosDR]; // Assign as an array
-
-        // Add the "ImpuestosDR" object to "ImpuestosDR" array in "DoctoRelacionado"
-        $oDoctoRelacionado->ImpuestosDR = $oImpuestosDR; // Assign as an array of objects
-
-
-        $lstDoctoRelacionado[] = $oDoctoRelacionado;
-        $oPago->DoctoRelacionado = $lstDoctoRelacionado;
-
-        $oImpuestoP = new PagosPagoImpuestosP;
-        $oTrasladoP = new PagosPagoImpuestosPTrasladoP;
-
-        $oTrasladoP->BaseP = $baseIva16;
-        $oTrasladoP->ImpuestoP = "002";
-        $oTrasladoP->TipoFactorP = "Tasa";
-        $oTrasladoP->TasaOCuotaP = "0.160000";
-        $oTrasladoP->ImporteP = $impuestoIva16;
-        $oImpuestoP->TrasladosP = [$oTrasladoP];
-
-        $oPago->ImpuestosP = $oImpuestoP;
-        $lstPagos[] = $oPago;
-        $oPagos->Pago = $lstPagos;
-        return $oPagos;
-    }
     function callServie($jsonPath, $jsonPathPago)
     {
         $facturaData = $this->getFacturaData();
@@ -253,9 +190,21 @@ class Abono extends Model
     function consumeTimbre($cantidad)
     {
         $user = $this->deuda->ventaticket->user;
+        $saldoSystem = $user->organization->latestSystemFolio;
+        $saldoSystemScalar = $saldoSystem?->saldo ?? 0;
+        if ($saldoSystemScalar) {
+            $this->system_folios()->create([
+                'organization_id' => $this->organization_id,
+                'cantidad' => $cantidad,
+                'antes' => $saldoSystemScalar,
+                'saldo' => $saldoSystemScalar - 1,
+            ]);
+            return;
+        }
+
         $saldo = $user->organization->latestFoliosUtilizado;
         $saldoScalar = $saldo?->saldo ?? 0;
-        if (!$saldo) {
+        if (!$saldoScalar) {
             throw new OperationalException("No cuentas con suficientes timbres fiscales, , contacta con la administración para solicitar timbres fiscales", 1);
         }
         $this->folios_utilizados()->create([
@@ -267,66 +216,10 @@ class Abono extends Model
         ]);
     }
 
-    function createConceptos()
-    {
-        $lstConceptos = [];
-        $oConcepto = new ComprobanteConcepto();
-        // $oConcepto->Importe = $articulo->importe;
-        $oConcepto->ClaveProdServ = '84111506';
-        $oConcepto->ClaveUnidad =  'ACT';
-        $oConcepto->Cantidad = 1;
-        $oConcepto->Descripcion = 'Pago';
-        $oConcepto->ObjetoImp = "01";
-        $lstConceptos[] = $oConcepto;
-        return $lstConceptos;
-    }
-    function initializeComprobante($serie)
-    {
-        $facturaData = $this->getFacturaData();
-        $comprobante = new Comprobante();
-        $comprobante->Version = "4.0";
-        $comprobante->Moneda = "XXX";
-        $comprobante->TipoDeComprobante = "P";
-        // $comprobante->MetodoPago = $metodoPago;
-
-        if ($serie) {
-            $comprobante->Serie = $serie;
-        }
-        $comprobante->Folio = $this->deuda->ventaticket->consecutivo ?? 1;
-
-        $pagado_en = Carbon::parse(getMysqlTimestamp());
-        $comprobante->Fecha = $pagado_en->format("Y-m-d\TH:i:s");
-
-        // $comprobante->FormaPago = $formaPago;
-        $comprobante->SubTotal = 0;
-        // $comprobante->Descuento = $this->descuento;
-        $comprobante->Total = 0;
-        $comprobante->LugarExpedicion = $facturaData['codigo_postal'];
-        return $comprobante;
-    }
     function getFacturaData()
     {
         $facturaHelper = new FacturaService;
         $facturaData = $facturaHelper->getData($this->deuda->ventaticket);
         return $facturaData;
-    }
-    function createEmisor(): ComprobanteEmisor
-    {
-        $facturaData = $this->getFacturaData();
-        $oEmisor = new ComprobanteEmisor();
-        $oEmisor->Rfc = strtoupper($facturaData['rfc']);
-        $oEmisor->Nombre = strtoupper($facturaData['razon_social']);
-        $oEmisor->RegimenFiscal =  $facturaData['regimen_fiscal'];
-        return $oEmisor;
-    }
-    function createReceptor(): ComprobanteReceptor
-    {
-        $oReceptor = new ComprobanteReceptor();
-        $oReceptor->Nombre = strtoupper($this->deuda->ventaticket->cliente->razon_social);
-        $oReceptor->Rfc = strtoupper($this->deuda->ventaticket->cliente->rfc);
-        $oReceptor->DomicilioFiscalReceptor =  $this->deuda->ventaticket->cliente->codigo_postal;
-        $oReceptor->RegimenFiscalReceptor =  $this->deuda->ventaticket->cliente->regimen_fiscal;
-        $oReceptor->UsoCFDI = 'CP01';
-        return $oReceptor;
     }
 }

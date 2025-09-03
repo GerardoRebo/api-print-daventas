@@ -373,8 +373,8 @@ class PuntoVentaController extends Controller
             ->findOrFail($ticket);
         $user = $request->user()->load('configuration');
         /** @var Ventaticket $ventaticket */
-        $saldo = $user->organization->latestFoliosUtilizado;
-        $saldoScalar = $saldo?->saldo ?? 0;
+        $saldo = $user->organization->getOverallTimbresCount();
+        $saldoScalar = $saldo;
         if (!$saldoScalar) {
             throw new OperationalException("No cuentas con suficientes timbres fiscales, , contacta con la administración para solicitar timbres fiscales", 1);
         }
