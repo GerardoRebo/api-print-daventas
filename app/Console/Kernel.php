@@ -17,7 +17,7 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
         $schedule->command('plans:check-expired')->daily();
-        $schedule->command('lifecycle:run')->dailyAt('08:00'); // Ajusta a tu zona horaria
+        // $schedule->command('lifecycle:run')->dailyAt('08:00'); // Ajusta a tu zona horaria
         $schedule->command('app:renew-timbres')->monthlyOn(1, '03:00');
     }
     protected $commands = [];

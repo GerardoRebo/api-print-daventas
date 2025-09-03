@@ -27,7 +27,6 @@ class CheckExpiredPlans extends Command
      */
     public function handle()
     {
-        logger("test123");
         $expiredOrganizations = Organization::whereHas('latestOrganizationPlan', function ($query) {
             $query->whereNotNull('ends_at')
                 ->where('ends_at', '<', now())

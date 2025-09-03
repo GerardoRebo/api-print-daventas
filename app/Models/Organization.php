@@ -9,6 +9,7 @@ use App\Services\Cfdi\CfdiUtilsGlobalBuilder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -94,6 +95,10 @@ class Organization extends Model
     public function image(): MorphOne
     {
         return $this->morphOne(SingleImage::class, 'single_imageable');
+    }
+    public function latestOrganizationPlan(): HasOne
+    {
+        return $this->hasOne(OrganizationPlan::class)->latestOfMany();
     }
     /**
      * The "booted" method of the model.
