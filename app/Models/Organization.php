@@ -3,11 +3,9 @@
 namespace App\Models;
 
 use App\Exceptions\OperationalException;
-use App\MyClasses\Factura\ComprobanteImpuestos;
-use App\MyClasses\Factura\ComprobanteImpuestosTraslado;
-// use App\MyClasses\Factura\ComprobanteImpuestosTraslado;
 use App\MyClasses\Factura\FacturaService;
 use App\MyClasses\Services\AlmacenService;
+use App\Services\Cfdi\CfdiUtilsGlobalBuilder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +14,6 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use stdClass;
 
 class Organization extends Model
 {
@@ -56,6 +53,26 @@ class Organization extends Model
     public function folios_utilizados()
     {
         return $this->hasMany(FoliosUtilizado::class);
+    }
+    public function organization_plans()
+    {
+        return $this->hasMany(OrganizationPlan::class);
+    }
+    public function venta_plans()
+    {
+        return $this->hasMany(VentaPlan::class);
+    }
+    public function system_folios()
+    {
+        return $this->hasMany(SystemFolio::class);
+    }
+    function get_active_users_count()
+    {
+        return $this->users()->where('activo', true)->count();
+    }
+    function get_active_almacens_count()
+    {
+        return $this->almacens()->where('is_active', true)->count();
     }
     //RELACIÓN UNO A MUCHOS Inversa
     public function plan()
@@ -271,37 +288,11 @@ class Organization extends Model
 
         /** @var PreFacturaGlobal $preFactura */
         $preFactura = PreFacturaGlobal::findOrFail($facturaId);
+        $cfdiUtils = new CfdiUtilsGlobalBuilder($preFactura);
+        $xml = $cfdiUtils->createFromVenta($serie, $formaPago, $year, $mes);
 
-        $oComprobante = $preFactura->initializeComprobante($serie, $formaPago, $year, $mes);
-
-        //emisor
-        $oEmisor = $preFactura->createEmisor();
-        //receptor
-        $oReceptor = $preFactura->createReceptor($usoCfdi);
-
-        //conceptos
-        $lstConceptos = $preFactura->createConceptos();
-
-        //NODO IMPUESTO
-
-        $oIMPUESTOS = new ComprobanteImpuestos();
-
-        $facturaImpuestos = $preFactura->getImpuestos();
-
-        if ($facturaImpuestos['trasladados']) {
-            $oIMPUESTOS->TotalImpuestosTrasladados = $preFactura->impuesto_traslado;
-            $oIMPUESTOS->Traslados = $facturaImpuestos['trasladados'];
-            $oComprobante->Impuestos = $oIMPUESTOS;
-        }
-
-        $oComprobante->Emisor = $oEmisor;
-        $oComprobante->Receptor = $oReceptor;
-        $oComprobante->Conceptos = $lstConceptos;
-
-        $MiJson = "";
-        $MiJson = json_encode($oComprobante);
-        $jsonPath = 'factura_json/' . $this->id;
-        Storage::disk('local')->put($jsonPath, $MiJson);
+        $jsonPath = 'facturaTmp/XmlDesdePhpSinTimbrar.xml';
+        Storage::disk('local')->put($jsonPath, $xml);
 
         $preFactura->callServie($jsonPath);
         $pdfFacturaPath = "pdf_factura_global/" . $this->id . "/" . $preFactura->id;
@@ -425,35 +416,7 @@ class Organization extends Model
             "traslados" => $impuestosTrasladados,
         ];
     }
-    function getImpuestosObject($taxes)
-    {
-        $impuestosTrasladados = [];
-        $impuestos = $this->getGroupedImpuestos($taxes);
-        foreach ($impuestos as $tipoK => $tipo) {
-            foreach ($tipo as $tipo_factorK => $tipo_factor) {
-                foreach ($tipo_factor as $c_impuestoK => $c_impuesto) {
-                    foreach ($c_impuesto as $tasa_o_cuotaK => $items) {
-                        $importe = 0;
-                        $base = 0;
-                        foreach ($items as $item) {
-                            $base += (float)$item['base'];
-                            $importe += (float)$item['importe'];
-                        }
-                        $oI = new ComprobanteImpuestosTraslado();
-                        $oI->Impuesto = $c_impuestoK;
-                        $oI->TipoFactor = $tipo_factorK;
-                        $oI->TasaOCuota = $tasa_o_cuotaK;
-                        $oI->Importe = $importe;
-                        $oI->Base = $base;
-                        $impuestosTrasladados[] = $oI;
-                    }
-                }
-            }
-        }
-        return [
-            "traslados" => $impuestosTrasladados,
-        ];
-    }
+
     private function facturaValidations($clavePrivadaLocal)
     {
         $facturaHelper = new FacturaService;
@@ -471,6 +434,87 @@ class Organization extends Model
     {
         return Ventaticket::whereIn($ticketsIds)->get();
     }
+    function resetDefaultAssets()
+    {
+        // Desactiva todos los almacenes excepto el primero
+        $firstAlmacenId = $this->almacens()->orderBy('id')->value('id');
+
+        $this->almacens()
+            ->where('id', '!=', $firstAlmacenId)
+            ->update(['is_active' => false]);
+
+        // Desactiva todos los usuarios excepto el primero
+        $firstUserId = $this->users()->orderBy('id')->value('id');
+
+        $this->users()
+            ->where('id', '!=', $firstUserId)
+            ->update(['activo' => false]);
+    }
+    function assignPlan(PlanPrice $planPrice)
+    {
+        $lastOrganizationPlan = $this->organization_plans()->where('is_active', true)->first();
+
+        if ($lastOrganizationPlan && $lastOrganizationPlan->plan->id != $planPrice->plan->id) {
+            $baseDate = now();
+        } else if ($lastOrganizationPlan) {
+            // Calculamos nuevo vencimiento
+            $baseDate = $lastOrganizationPlan  && $lastOrganizationPlan->ends_at && $lastOrganizationPlan->ends_at->isFuture()
+                ? $lastOrganizationPlan->ends_at
+                : now();
+        }
+        $this->makeOldPlansInactive();
+        $this->organization_plans()->create([
+            'plan_id' => $planPrice->plan->id,
+            'started_at' => now(),
+            'ends_at' => $planPrice->meses
+                ? $baseDate->copy()->addMonths($planPrice->meses)
+                : null,
+            'is_active' => true,
+        ]);
+        $this->setSystemFolios($planPrice->plan->timbres_mensuales);
+    }
+    function assignDefaultPlan()
+    {
+        $freePlan = Plan::where('is_free', true)->where('is_default', true)->first();
+        if (!$freePlan) {
+            throw new OperationalException("Ha ocurrido un error con los planes, por favor contacta a soporte tecnico", 1);
+        }
+        $freePlanPrice = $freePlan->plan_prices()->whereNull('meses')->first();
+
+        if (!$freePlanPrice) {
+            throw new OperationalException("Plan gratis no encontrado", 1);
+        }
+
+        $this->makeOldPlansInactive();
+        $this->organization_plans()->create([
+            'plan_id' => $freePlanPrice->plan->id,
+            'started_at' => now(),
+            'ends_at' => null,
+            'is_active' => true,
+        ]);
+    }
+    function assignInitialPlan()
+    {
+        $freePlan = Plan::where('is_free', true)->where('is_default', false)->first();
+        if (!$freePlan) {
+            throw new OperationalException("Ha ocurrido un error con los planes, por favor contacta a soporte tecnico", 1);
+        }
+        $planPrice = $freePlan->plan_prices()->first();
+
+        if (!$planPrice) {
+            throw new OperationalException("Plan inicial no encontrado", 1);
+        }
+
+        $this->makeOldPlansInactive();
+        $endsDate = $planPrice->meses ? now()->addMonths($planPrice->meses) : null;
+        $this->organization_plans()->create([
+            'plan_id' => $planPrice->plan->id,
+            'started_at' => now(),
+            'ends_at' => $endsDate,
+            'is_active' => true,
+        ]);
+    }
+
 
     function createCotizacionFromOrder($cart)
     {
@@ -514,5 +558,15 @@ class Organization extends Model
         $newAlmacen->save();
         $almacenService = new AlmacenService;
         $almacenService->attachAlmacenToTeamMembers($user, $newAlmacen->id);
+    }
+    function setSystemFolios($quantityFolios)
+    {
+        if (!$quantityFolios) return;
+        $this->system_folios()->create([
+            'cantidad' => $quantityFolios,
+            'saldo' => $quantityFolios,
+            'facturable_type' => 'Reseteo mensual',
+            'facturable_id' => 1,
+        ]);
     }
 }

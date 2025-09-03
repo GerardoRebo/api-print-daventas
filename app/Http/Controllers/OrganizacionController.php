@@ -369,6 +369,46 @@ class OrganizacionController extends Controller
         $user->save();
         return;
     }
+    public function toggleUser()
+    {
+        $user = request()->input('userId');
+        $authUser = auth()->user();
+        if (!$authUser->hasAnyRole('Owner', 'Admin')) return;
+        $orgId = $authUser->organization_id;
+        $user = User::find($user);
+        if ($user->hasAnyRole('Owner')) {
+            throw new OperationalException("No es posible desactivar al dueño de la organizacion", 1);
+        }
+        if ($user->organization_id != $orgId) return;
+        $organization = $authUser->organization;
+        $organizationPlan = $organization->latestOrganizationPlan;
+        if ($organizationPlan) {
+            $activeUsersCount = $organization->get_active_users_count();
+            if ($activeUsersCount >= $organizationPlan->plan->max_users && !$user->activo) {
+                throw new OperationalException("Has alcanzado el limite de usuarios activos para tu plan actual", 1);
+            }
+        }
+        $user->activo = !$user->activo;
+        $user->save();
+    }
+    public function toggleAlmacen()
+    {
+        $almacen = Almacen::find(request()->input('almacenId'));
+        $authUser = auth()->user();
+        if (!$authUser->hasAnyRole('Owner', 'Admin')) throw new OperationalException("No cuentas con el permiso", 1);;
+        $orgId = $authUser->organization_id;
+        if ($almacen->organization_id != $orgId) throw new OperationalException("No es de tu organizacion", 1);
+        $organization = $authUser->organization;
+        $organizationPlan = $organization->latestOrganizationPlan;
+        if ($organizationPlan) {
+            $activeAlmacensCount = $organization->get_active_almacens_count();
+            if ($activeAlmacensCount >= $organizationPlan->plan->max_almacens && !$almacen->is_active) {
+                throw new OperationalException("Has alcanzado el limite de almacenes activos para tu plan actual", 1);
+            }
+        }
+        $almacen->is_active = !$almacen->is_active;
+        $almacen->save();
+    }
 
     public function registrarPago()
     {
@@ -450,6 +490,7 @@ class OrganizacionController extends Controller
             return  "No se pudo conectar a la BD";
         }
     }
+
     public function eliminartabular(Request $request)
     {
         $user = $request->user();

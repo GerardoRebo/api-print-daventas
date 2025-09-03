@@ -3,16 +3,7 @@
 namespace App\Models;
 
 use App\Exceptions\OperationalException;
-use App\MyClasses\Factura\Comprobante;
-use App\MyClasses\Factura\ComprobanteConcepto;
-use App\MyClasses\Factura\ComprobanteConceptoImpuestos;
-use App\MyClasses\Factura\ComprobanteEmisor;
-use App\MyClasses\Factura\ComprobanteImpuestosRetencion;
-use App\MyClasses\Factura\ComprobanteImpuestosTraslado;
-use App\MyClasses\Factura\ComprobanteReceptor;
 use App\MyClasses\Factura\FacturaService;
-use App\MyClasses\Factura\InformacionGlobal;
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -75,78 +66,7 @@ class PreFacturaGlobal extends Model
     {
         return $this->morphMany(FoliosUtilizado::class, 'facturable');
     }
-    function initializeComprobante($serie, $formaPago, $year, $mes)
-    {
-        $facturaData = $this->getFacturaData();
-        $oCombrobante = new Comprobante();
-        $oCombrobante->Version = "4.0";
-        $oCombrobante->Moneda = "MXN";
-        $oCombrobante->TipoDeComprobante = "I";
-        $oCombrobante->MetodoPago = "PUE";
-        // $oCombrobante->Exportacion = "01";
-        $informacionGlobal = new InformacionGlobal;
-        $informacionGlobal->Año = $year;
-        $informacionGlobal->Meses = $mes;
-        $informacionGlobal->Periodicidad = $this->c_periodicidad;
-        $oCombrobante->InformacionGlobal = $informacionGlobal;
-        if ($serie) {
-            $oCombrobante->Serie = 'G' . $serie;
-        }
-        $oCombrobante->Folio = $this->id;
-        $pagado_en = Carbon::parse(getMysqlTimestamp());
-        $oCombrobante->Fecha = $pagado_en->format("Y-m-d\TH:i:s");
-        $oCombrobante->FormaPago = $formaPago;
-        $oCombrobante->SubTotal = $this->subtotal;
-        $oCombrobante->Descuento = $this->descuento;
-        $oCombrobante->Total = $this->total;
-        $oCombrobante->LugarExpedicion = $facturaData['codigo_postal'];
-        return $oCombrobante;
-    }
-    function createEmisor(): ComprobanteEmisor
-    {
-        $facturaData = $this->getFacturaData();
-        $oEmisor = new ComprobanteEmisor();
-        $oEmisor->Rfc = strtoupper($facturaData['rfc']);
-        $oEmisor->Nombre = strtoupper($facturaData['razon_social']);
-        $oEmisor->RegimenFiscal =  $facturaData['regimen_fiscal'];
-        return $oEmisor;
-    }
-    function createReceptor($usoCfdi): ComprobanteReceptor
-    {
-        $facturaData = $this->getFacturaData();
-        $oReceptor = new ComprobanteReceptor();
-        $oReceptor->Rfc = 'XAXX010101000';
-        $oReceptor->Nombre = 'PUBLICO EN GENERAL';
-        $oReceptor->DomicilioFiscalReceptor =  $facturaData['codigo_postal'];
-        $oReceptor->RegimenFiscalReceptor =  "616";
-        $oReceptor->UsoCFDI = $usoCfdi;
-        return $oReceptor;
-    }
-    function createConceptos()
-    {
-        $lstConceptos = [];
-        foreach ($this->articulos as $articulo) {
-            $oConcepto = new ComprobanteConcepto();
-            $oConcepto->ClaveProdServ = '01010101';
-            $oConcepto->NoIdentificacion = $articulo->ventaticket_id;
-            $oConcepto->Cantidad = 1;
-            $oConcepto->ClaveUnidad =  'ACT';
-            $oConcepto->Descripcion = 'Venta';
-            $oConcepto->ValorUnitario = $articulo->subtotal;
-            $oConcepto->Importe = $articulo->subtotal;
-            $oConcepto->Descuento = $articulo->descuento;
-            $oConcepto->ObjetoImp = "02";
 
-            $articuloImpuestos = $articulo->getConceptoImpuestos();
-
-            if ($articuloImpuestos["traslados"]) {
-                $oConcepto->Impuestos = new ComprobanteConceptoImpuestos();
-                $oConcepto->Impuestos->Traslados = $articuloImpuestos["traslados"];
-            }
-            $lstConceptos[] = $oConcepto;
-        }
-        return $lstConceptos;
-    }
     function updateFacturadoEn()
     {
         $prefacturasIds = $this->articulos->pluck('id');
@@ -234,44 +154,6 @@ class PreFacturaGlobal extends Model
     {
         $facturaHelper = new FacturaService;
         return $facturaHelper->getGlobalData($this->organization);
-    }
-    function getImpuestos()
-    {
-        $lstImpuestosRetenidos = [];
-        $lstImpuestosTrasladados = [];
-        $impuestos = $this->getGroupedImpuestos();
-        foreach ($impuestos as $tipoK => $tipo) {
-            foreach ($tipo as $tipo_factorK => $tipo_factor) {
-                foreach ($tipo_factor as $c_impuestoK => $c_impuesto) {
-                    foreach ($c_impuesto as $tasa_o_cuotaK => $items) {
-                        $importe = 0;
-                        $base = 0;
-                        foreach ($items as $item) {
-                            $base += (float)$item['base'];
-                            $importe += (float)$item['importe'];
-                        }
-                        if ($tipoK == 'retencion') {
-                            $oI = new ComprobanteImpuestosRetencion();
-                            $oI->Impuesto = $c_impuestoK;
-                            $oI->Importe = $importe;
-                            $lstImpuestosRetenidos[] = $oI;
-                        } else {
-                            $oI = new ComprobanteImpuestosTraslado();
-                            $oI->Impuesto = $c_impuestoK;
-                            $oI->TipoFactor = $tipo_factorK;
-                            $oI->TasaOCuota = $tasa_o_cuotaK;
-                            $oI->Importe = $importe;
-                            $oI->Base = $base;
-                            $lstImpuestosTrasladados[] = $oI;
-                        }
-                    }
-                }
-            }
-        }
-        return [
-            "retenidos" => $lstImpuestosRetenidos,
-            "trasladados" => $lstImpuestosTrasladados,
-        ];
     }
     private function getGroupedImpuestos()
     {

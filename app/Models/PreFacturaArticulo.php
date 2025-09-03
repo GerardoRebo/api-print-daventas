@@ -2,8 +2,7 @@
 
 namespace App\Models;
 
-use App\MyClasses\Factura\ComprobanteConceptoImpuestosRetencion;
-use App\MyClasses\Factura\ComprobanteConceptoImpuestosTraslado;
+use App\Services\Cfdi\CfdiCommon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -185,31 +184,5 @@ class PreFacturaArticulo extends Model
         }
 
         $this->descuento = $descuento * $this->cantidad;
-    }
-    function getConceptoImpuestos()
-    {
-        $lstImpuestosRetenidos = [];
-        $lstImpuestosTrasladados = [];
-        foreach ($this->taxes as $taxArticulo) {
-            if ($taxArticulo->tipo == 'retenido') {
-                $oImpuesto = new ComprobanteConceptoImpuestosRetencion();
-            } else {
-                $oImpuesto = new ComprobanteConceptoImpuestosTraslado();
-            }
-            $oImpuesto->Base = $taxArticulo->base;
-            $oImpuesto->TipoFactor =  $taxArticulo->tipo_factor;
-            $oImpuesto->Impuesto =  $taxArticulo->c_impuesto;
-            $oImpuesto->Importe = $taxArticulo->importe;
-            $oImpuesto->TasaOCuota = $taxArticulo->tasa_o_cuota;
-            if ($taxArticulo->tipo == 'retenido') {
-                $lstImpuestosRetenidos[] = $oImpuesto;
-            } else {
-                $lstImpuestosTrasladados[] = $oImpuesto;
-            }
-        }
-        return [
-            "retenidos" => $lstImpuestosRetenidos,
-            "traslados" => $lstImpuestosTrasladados,
-        ];
     }
 }

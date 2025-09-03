@@ -39,6 +39,7 @@ class RegisterController extends Controller
         ]);
 
         $newOrganization->createNewAlmacen($user);
+        $newOrganization->assignInitialPlan();
 
         event(new Registered($user));
         return $user->createToken('desktop')->plainTextToken;

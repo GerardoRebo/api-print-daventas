@@ -16,9 +16,11 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         // $schedule->command('inspire')->hourly();
+        $schedule->command('plans:check-expired')->daily();
+        $schedule->command('lifecycle:run')->dailyAt('08:00'); // Ajusta a tu zona horaria
+        $schedule->command('app:renew-timbres')->monthlyOn(1, '03:00');
     }
-    protected $commands = [
-    ];
+    protected $commands = [];
 
     /**
      * Register the commands for the application.
@@ -27,7 +29,7 @@ class Kernel extends ConsoleKernel
      */
     protected function commands()
     {
-        $this->load(__DIR__.'/Commands');
+        $this->load(__DIR__ . '/Commands');
 
         require base_path('routes/console.php');
     }
