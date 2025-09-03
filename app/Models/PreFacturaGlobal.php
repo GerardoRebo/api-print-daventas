@@ -76,6 +76,18 @@ class PreFacturaGlobal extends Model
     }
     function consumeTimbre($cantidad)
     {
+        $saldoSystem = $this->organization->latestSystemFolio;
+        $saldoSystemScalar = $saldoSystem?->saldo ?? 0;
+        if ($saldoSystemScalar) {
+            $this->system_folios()->create([
+                'organization_id' => $this->organization_id,
+                'cantidad' => $cantidad,
+                'antes' => $saldoSystemScalar,
+                'saldo' => $saldoSystemScalar - 1,
+            ]);
+            return;
+        }
+
         $saldo = $this->organization->latestFoliosUtilizado;
         $saldoScalar = $saldo?->saldo ?? 0;
         if (!$saldoScalar) {

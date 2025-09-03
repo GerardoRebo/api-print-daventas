@@ -71,6 +71,10 @@ class PreFactura extends Model
     {
         return $this->morphMany(FoliosUtilizado::class, 'facturable');
     }
+    public function system_folios(): MorphMany
+    {
+        return $this->morphMany(SystemFolio::class, 'facturable');
+    }
 
     function callServie($jsonPath)
     {
@@ -139,6 +143,17 @@ class PreFactura extends Model
     }
     function consumeTimbre($cantidad)
     {
+        $saldoSystem = $this->organization->latestSystemFolio;
+        $saldoSystemScalar = $saldoSystem?->saldo ?? 0;
+        if ($saldoSystemScalar) {
+            $this->system_folios()->create([
+                'organization_id' => $this->organization_id,
+                'cantidad' => $cantidad,
+                'antes' => $saldoSystemScalar,
+                'saldo' => $saldoSystemScalar - 1,
+            ]);
+            return;
+        }
         $saldo = $this->organization->latestFoliosUtilizado;
         $saldoScalar = $saldo?->saldo ?? 0;
         if (!$saldoScalar) {

@@ -87,6 +87,10 @@ class Organization extends Model
     {
         return $this->hasOne(FoliosUtilizado::class)->latestOfMany();
     }
+    public function latestSystemFolio()
+    {
+        return $this->hasOne(SystemFolio::class)->latestOfMany();
+    }
     public function image(): MorphOne
     {
         return $this->morphOne(SingleImage::class, 'single_imageable');
@@ -568,5 +572,11 @@ class Organization extends Model
             'facturable_type' => 'Reseteo mensual',
             'facturable_id' => 1,
         ]);
+    }
+    function getOverallTimbresCount()
+    {
+        $systemFoliosCount = $this->latestSystemFolio?->saldo ?? 0;
+        $usedFoliosCount = $this->latestFoliosUtilizado?->saldo ?? 0;
+        return $systemFoliosCount + $usedFoliosCount;
     }
 }
