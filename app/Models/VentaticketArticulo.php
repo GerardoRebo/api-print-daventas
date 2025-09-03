@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Cfdi\CfdiCommon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -119,7 +120,7 @@ class VentaticketArticulo extends Model
         if (!$taxes->count()) {
             return $precio;
         }
-        $sumaTasas = $taxes->sum('tasa_cuota') / 100;
+        $sumaTasas = $taxes->where('tipo', 'traslado')->sum('tasa_cuota') / 100;
         $precioUsado = $precio;
         return $precioUsado / (1 + $sumaTasas);
     }
@@ -161,31 +162,14 @@ class VentaticketArticulo extends Model
         if (!$taxes->count()) {
             return 0;
         }
-        $productTaxes = [];
-        $cantidades = [];
-        foreach ($taxes as $tax) {
-            if (!$tax->pivot->venta) continue;
-            $baseImponible = $this->precio_final - $this->importe_descuento;
-            $importe = $baseImponible * ($tax->tasa_cuota / 100);
-            array_push($productTaxes, [
-                'ventaticket_id' => $ventaticket->id,
-                'ventaticket_articulo_id' => $this->id,
-                'tax_id' => $tax->id,
-                'importe' => $importe,
-                'base' => $baseImponible,
-                'c_impuesto' => $tax->c_impuesto,
-                'tipo_factor' => $tax->tipo_factor,
-                'tasa_o_cuota' => $tax->tasa_cuota_str,
-                'tipo' => $tax->tipo,
-                'descripcion' => $tax->descripcion,
-            ]);
-            array_push($cantidades, $importe);
-        };
+        $cfidCommon = new CfdiCommon();
+        [$productTaxes, $total] = $cfidCommon->calculateTaxesByType($taxes, $this->precio_final, $this->cantidad, 'traslado');
+
         foreach ($productTaxes as $pt) {
             ArticuloTax::updateOrCreate(
                 [
-                    'ventaticket_id' => $pt['ventaticket_id'],
-                    'ventaticket_articulo_id' => $pt['ventaticket_articulo_id'],
+                    'ventaticket_id' => $ventaticket->id,
+                    'ventaticket_articulo_id' => $this->id,
                     'tax_id' => $pt['tax_id']
                 ],
                 [
@@ -199,52 +183,58 @@ class VentaticketArticulo extends Model
                 ]
             );
         }
-        return array_sum($cantidades);
+        return $total;
+    }
+    function getIvaAmount()
+    {
+        return $this->taxes->where('c_impuesto', '002')->sum('importe');
     }
     function getRetencionTaxesAmount()
     {
         $ventaticket = $this->ventaticket;
-        $taxes = $ventaticket->retention_taxes;
-        if (!$taxes->count()) {
+        $rules = $ventaticket->retention_rules;
+        if (!$rules->count()) {
             return 0;
         }
-        $productTaxes = [];
         $cantidades = [];
-        foreach ($taxes as $tax) {
-            $baseImponible = $this->precio_final - $this->importe_descuento;
-            $importe = $baseImponible * ($tax->tasa_cuota / 100);
-            array_push($productTaxes, [
+        foreach ($rules as $rule) {
+            $baseData = [
                 'ventaticket_id' => $ventaticket->id,
                 'ventaticket_articulo_id' => $this->id,
-                'tax_id' => $tax->retention_rule->tax_id,
-                'importe' => $importe,
-                'base' => $baseImponible,
-                'c_impuesto' => $tax->c_impuesto,
-                'tipo_factor' => $tax->retention_rule->tax->tipo_factor,
-                'tasa_o_cuota' => $tax->retention_rule->tax->tasa_cuota_str,
-                'tipo' => 'retenido',
-                'descripcion' => $tax->retention_rule->tax->descripcion,
-            ]);
-            array_push($cantidades, $importe);
+                'tax_id' => null
+            ];
+            if ($rule->isr_percentage) {
+                $importe = $this->precio_final * ($rule->isr_percentage / 100);
+                $cantidades[] = $importe;
+                $baseData = array_merge(
+                    $baseData,
+                    [
+                        'importe' => $importe,
+                        'base' => $this->precio_final,
+                        'c_impuesto' => '001',
+                        'tipo_factor' => 'Tasa',
+                        'tasa_o_cuota' => $this->formatPercentage($rule->isr_percentage),
+                        'tipo' => 'retenido',
+                        'descripcion' => 'ISR',
+                    ]
+                );
+                ArticuloTax::create($baseData);
+            }
+            if ($rule->iva_percentage) {
+                $importe = $this->precio_final * ($rule->iva_percentage / 100);
+                $cantidades[] = $importe;
+                $baseData = array_merge($baseData, [
+                    'importe' => $importe,
+                    'base' => $this->precio_final,
+                    'c_impuesto' => '002',
+                    'tipo_factor' => 'Tasa',
+                    'tasa_o_cuota' =>  $this->formatPercentage($rule->iva_percentage),
+                    'tipo' => 'retenido',
+                    'descripcion' => 'IVA',
+                ]);
+                ArticuloTax::create($baseData);
+            }
         };
-        foreach ($productTaxes as $pt) {
-            ArticuloTax::updateOrCreate(
-                [
-                    'ventaticket_id' => $pt['ventaticket_id'],
-                    'ventaticket_articulo_id' => $pt['ventaticket_articulo_id'],
-                    'tax_id' => $pt['tax_id']
-                ],
-                [
-                    'importe' => $pt['importe'],
-                    'base' => $pt['base'],
-                    'c_impuesto' => $pt['c_impuesto'],
-                    'tipo_factor' => $pt['tipo_factor'],
-                    'tasa_o_cuota' => $pt['tasa_o_cuota'],
-                    'tipo' => $pt['tipo'],
-                    'descripcion' => $pt['descripcion'],
-                ]
-            );
-        }
         return array_sum($cantidades);
     }
     function getCurrentTaxesAmount($type = 'traslado')
