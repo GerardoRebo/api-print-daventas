@@ -37,6 +37,8 @@ class ClienteController extends Controller
             'cliente_id' => $clienteId
         ]);
         if (!$cliente->regimen_fiscal) return;
+        // if ($ventaticket->ventaticket_articulos->count()) return;
+
         $organization = $user->organization;
         return response()->json([
             'success' => true,

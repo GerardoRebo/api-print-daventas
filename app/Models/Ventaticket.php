@@ -44,6 +44,10 @@ class Ventaticket extends Model
     {
         return $this->hasMany(VentaticketRetentionTaxes::class);
     }
+    public function retention_rules()
+    {
+        return $this->hasMany(VentaticketRetentionRule::class);
+    }
 
     public function devoluciones()
     {

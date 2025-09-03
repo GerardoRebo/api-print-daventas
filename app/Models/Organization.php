@@ -96,7 +96,7 @@ class Organization extends Model
     {
         $rules = $this->getClientRetentionRules($regimenFiscal);
         $rules = $rules->map(function ($item) {
-            return $item->tax->descripcion . ' %' . $item->tax->tasa_cuota;
+            return $item->name;
         });
         return $rules->implode($rules, ', ');
     }
@@ -327,74 +327,10 @@ class Organization extends Model
                 ->whereIn('id', $chunk)
                 ->chunkById(100, function ($ventatickets) use ($preFacturaGlobal) {
                     foreach ($ventatickets as $ticket) {
-                        $preFactura = new PreFactura();
-                        $preFactura->ventaticket_id = $ticket->id;
-                        $preFactura->organization_id = $this->id;
-                        $preFactura->pre_factura_global_id = $preFacturaGlobal->id;
-                        $preFactura->save();
-                        $articulos = [];
-                        $preFacturaTaxes = [];
-                        foreach ($ticket->ventaticket_articulos as $articulo) {
-                            $art['cantidad'] = $articulo->cantidad;
-                            $art['precio'] = $articulo->precio_usado;
-                            $art['importe'] = $articulo->cantidad * $articulo->precio_usado;
-                            if ($articulo->taxes->count()) {
-                                $art['descuento'] = $articulo->importe_descuento;
-                            } else {
-                                // $preArticulo->setBaseImpositiva($articulo->product->taxes);
-                                $taxes = $articulo->product->taxes;
-                                $sumaTasas = $taxes->sum('tasa_cuota') / 100;
-                                $art['precio'] = ($articulo->precio_usado - $articulo->descuento) / (1 + $sumaTasas);
-                                $art['descuento'] = $articulo->product->getDescuentoCantidad($articulo->cantidad, $articulo->precio);
-                                $art['importe'] = $articulo->cantidad * $art['precio'];
-                            }
-                            if ($articulo->taxes->count()) {
-                                $cantidades = [];
-                                foreach ($articulo->taxes as $articuloTax) {
-                                    if ($articuloTax->tipo == 'retenido') continue;
-                                    $preFacturaTaxes[] = [
-                                        'tax_id' => $articuloTax->tax_id,
-                                        'c_impuesto' => $articuloTax->c_impuesto,
-                                        'tipo_factor' => $articuloTax->tipo_factor,
-                                        'tasa_o_cuota' => $articuloTax->tasa_o_cuota,
-                                        'tipo' => $articuloTax->tipo,
-                                        'importe' => $articuloTax->importe,
-                                        'base' => $articuloTax->base,
-                                    ];
-                                    array_push($cantidades, $articuloTax->importe);
-                                };
-                                $art['impuesto_traslado'] = array_sum($cantidades);
-                            } else {
-                                $cantidades = [];
-                                foreach ($articulo->product->taxes as $tax) {
-                                    if ($tax->tipo == 'retenido') continue;
-                                    $baseImponible = $art['importe'];
-                                    $importe = $baseImponible * ($tax->tasa_cuota / 100);
-                                    $preFacturaTaxes[] = [
-                                        'tax_id' => $tax->id,
-                                        'c_impuesto' => $tax->c_impuesto,
-                                        'tipo_factor' => $tax->tipo_factor,
-                                        'tasa_o_cuota' => $tax->tasa_cuota_str,
-                                        'tipo' => $tax->tipo,
-                                        'importe' => round($importe, 2),
-                                        'base' => round($baseImponible, 2),
-                                    ];
-                                    array_push($cantidades, $importe);
-                                };
-                                $art['impuesto_traslado'] = array_sum($cantidades);
-                            }
-                            $articulos[] = $art;
+                        if ($ticket->impuesto_retenido) {
+                            throw new OperationalException("Producto con impuesto retenido, no procede en factura global", 1);
                         }
-                        $subtotal = array_sum(array_column($articulos, 'importe'));
-                        $descuento = array_sum(array_column($articulos, 'descuento'));
-                        $impuesto_traslado = array_sum(array_column($articulos, 'impuesto_traslado'));
-                        $impuestos = $this->getImpuestosArray($preFacturaTaxes);
-                        $preFactura->subtotal = $subtotal;
-                        $preFactura->descuento = $descuento;
-                        $preFactura->impuesto_traslado = $impuesto_traslado;
-                        $preFactura->impuesto_traslado_array = $impuestos['traslados'];
-                        $preFactura->setTotal();
-                        $preFactura->save();
+                        $preFactura = $ticket->createPreFacturaForGlobal($preFacturaGlobal);
                     }
                 });
         };

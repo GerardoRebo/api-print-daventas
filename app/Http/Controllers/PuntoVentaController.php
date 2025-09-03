@@ -150,7 +150,7 @@ class PuntoVentaController extends Controller
         $ticketVenta = new TicketVenta($ventaticket);
 
         if ($ticketVenta->ticket->facturado_en) {
-            throw new Exception("No es posible cancelar, el ticket ha sido facturado", 1);
+            throw new OperationalException("No es posible cancelar, el ticket ha sido facturado", 1);
         }
 
         $almacen = $ticketVenta->getAlmacen();
@@ -386,26 +386,20 @@ class PuntoVentaController extends Controller
     {
         $user = auth()->user();
         $organization = $user->organization;
-        // if ($ventaticket->ventaticket_articulos->count()) {
-        //     throw new OperationalException("El ticket no debe tener articulos", 1);
-        // }
         $ventaticket->retention = true;
         $ventaticket->save();
-        $retentionRules = $organization->getClientRetentionRules($ventaticket?->cliente?->regimen_fiscal);
+        $retentionRules = $organization->getClientRetentionRules($ventaticket->cliente->regimen_fiscal);
         foreach ($retentionRules as $rule) {
-            $ventaticket->retention_rules()->create([
+            $ventaticket->retention_taxes()->create([
                 'retention_rule_id' => $rule->id,
-                'organization_id' => $organization->id,
-                'regimen_fiscal' => $ventaticket->cliente->regimen_fiscal,
-                'isr_percentage' => $rule->isr_percentage,
-                'iva_percentage' => $rule->iva_percentage,
+                'c_impuesto' => $rule->tax->c_impuesto,
+                'retention_rule_id' => $rule->id,
+                'tasa_cuota' => $rule->tax->tasa_cuota,
             ]);
         }
-        if ($ventaticket->esta_abierto) {
-            foreach ($ventaticket->ventaticket_articulos as $articulo) {
-                $articulo->impuesto_retenido = $articulo->getRetencionTaxesAmount();
-                $articulo->save();
-            }
+        foreach ($ventaticket->ventaticket_articulos as $articulo) {
+            $articulo->impuesto_retenido = $articulo->getRetencionTaxesAmount();
+            $articulo->save();
         }
 
         return $ventaticket;
