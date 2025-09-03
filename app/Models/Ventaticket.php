@@ -40,10 +40,6 @@ class Ventaticket extends Model
     {
         return $this->hasMany('App\Models\VentaticketArticulo');
     }
-    public function retention_taxes()
-    {
-        return $this->hasMany(VentaticketRetentionTaxes::class);
-    }
     public function retention_rules()
     {
         return $this->hasMany(VentaticketRetentionRule::class);

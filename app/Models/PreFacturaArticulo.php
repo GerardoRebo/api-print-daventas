@@ -63,51 +63,60 @@ class PreFacturaArticulo extends Model
     }
     public function setNewTaxesTraslado()
     {
-        $productTaxes = [];
-        $cantidades = [];
-        foreach ($this->product->taxes as $tax) {
-            $baseImponible = $this->importe;
-            $importe = $baseImponible * ($tax->tasa_cuota / 100);
-            array_push($productTaxes, [
-                'pre_factura_articulo_id' => $this->id,
-                'tax_id' => $tax->id,
-                'c_impuesto' => $tax->c_impuesto,
-                'tipo_factor' => $tax->tipo_factor,
-                'tasa_o_cuota' => $tax->tasa_cuota_str,
-                'tipo' => $tax->tipo,
-                'importe' => $importe,
-                'base' => $baseImponible,
-            ]);
-            array_push($cantidades, $importe);
-        };
+        $baseProducto = $this->importe;
+        $taxes = $this->product->taxes;
+
+        $cfidCommon = new CfdiCommon();
+        [$productTaxes, $total] = $cfidCommon->calculateTaxesByType($taxes, $baseProducto, $this->cantidad);
+
         $this->addTaxes($productTaxes);
-        $this->impuesto_traslado = array_sum($cantidades);
+        $this->impuesto_traslado = $total;
     }
     public function setNewTaxesRetenido()
     {
-        $productTaxes = [];
-        $cantidades = [];
         $ventaticket = $this->preFactura->ventaticket;
-        $taxes = $ventaticket->retention_taxes;
-        if (!$taxes->count()) {
-            return;
+        $rules = $ventaticket->retention_rules;
+        if (!$rules->count()) {
+            return 0;
         }
-        foreach ($taxes as $tax) {
-            $baseImponible = $this->importe;
-            $importe = $baseImponible * ($tax->tasa_cuota / 100);
-            array_push($productTaxes, [
+        $cantidades = [];
+        foreach ($rules as $rule) {
+            $baseData = [
+                'pre_factura_id' => $this->pre_factura_id,
                 'pre_factura_articulo_id' => $this->id,
-                'tax_id' => $tax->id,
-                'c_impuesto' => $tax->c_impuesto,
-                'tipo_factor' => $tax->tipo_factor,
-                'tasa_o_cuota' => $tax->tasa_cuota_str,
-                'tipo' => $tax->tipo,
-                'importe' => $importe,
-                'base' => $baseImponible,
-            ]);
-            array_push($cantidades, $importe);
+                'tax_id' => null
+            ];
+            if ($rule->isr_percentage) {
+                //importe in this case is the calculation $this->importe is the base
+                $importe = $this->importe * ($rule->isr_percentage / 100);
+                $cantidades[] = $importe;
+                $baseData = array_merge(
+                    $baseData,
+                    [
+                        'importe' => $importe,
+                        'base' => $this->importe, //base
+                        'c_impuesto' => '001',
+                        'tipo_factor' => 'Tasa',
+                        'tasa_o_cuota' => $this->formatPercentage($rule->isr_percentage),
+                        'tipo' => 'retenido',
+                    ]
+                );
+                PreFacturaArticuloTax::create($baseData);
+            }
+            if ($rule->iva_percentage) {
+                $importe = $this->importe * ($rule->iva_percentage / 100);
+                $cantidades[] = $importe;
+                $baseData = array_merge($baseData, [
+                    'importe' => $importe,
+                    'base' => $this->importe,
+                    'c_impuesto' => '002',
+                    'tipo_factor' => 'Tasa',
+                    'tasa_o_cuota' =>  $this->formatPercentage($rule->iva_percentage),
+                    'tipo' => 'retenido',
+                ]);
+                PreFacturaArticuloTax::create($baseData);
+            }
         };
-        $this->addTaxes($productTaxes);
         $this->impuesto_retenido = array_sum($cantidades);
     }
     public function setTaxes($taxes)
