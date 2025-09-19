@@ -150,7 +150,7 @@ class CfdiUtilsGlobalBuilder
         foreach ($this->preFactura->articulos as $articulo) {
             $concepto = $this->comprobante->addConcepto([
                 'ClaveProdServ' => '01010101',
-                'NoIdentificacion' => $articulo->ventaticket_id,
+                'NoIdentificacion' => $articulo->ventaticket->consecutivo ?? $articulo->ventaticket_id,
                 'Cantidad' => 1,
                 'ClaveUnidad' => 'ACT',
                 // 'Unidad' => $producto->c_ClaveUnidad_descripcion ?? 'Pieza',

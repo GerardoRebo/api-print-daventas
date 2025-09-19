@@ -66,6 +66,7 @@ class CorteController extends Controller
         $miscortesPaginados = Turno::where('organization_id', $user->organization_id)
             ->whereBetween('inicio_en', [$dfecha, $fecha])
             ->orderBy('inicio_en', 'desc')
+            ->orderByDesc('id')
             ->paginate(7);
         $miscortes = $miscortesPaginados->getCollection()->map(function ($item, $key) {
 
@@ -158,7 +159,7 @@ class CorteController extends Controller
     {
         $user = $request->user();
         $corte = Turno::with('ventatickets')->find($corte);
-        $ventaTickets = $corte->ventatickets;
+        $ventaTicketIds = $corte->ventatickets->where('esta_cancelado', false)->pluck('id');
         $ventaTicketArticulos = VentaticketArticulo::with('product')
             ->selectRaw('product_id,precio_usado, sum(cantidad) as cantidad,
         sum(importe_descuento) as importe_descuento,
@@ -167,14 +168,15 @@ class CorteController extends Controller
         sum(precio_final) as precio_final')
             ->groupBy('product_id')
             ->groupBy('precio_usado')
-            ->whereIn('ventaticket_id', $ventaTickets->pluck('id'))
+            ->whereIn('ventaticket_id', $ventaTicketIds)
             ->get();
-        $taxes = ArticuloTax::with('tax')->join('ventaticket_articulos', 'ventaticket_articulos.id', '=', 'articulo_taxes.ventaticket_articulo_id')
+        $taxes = ArticuloTax::with('tax')
+            ->join('ventaticket_articulos', 'ventaticket_articulos.id', '=', 'articulo_taxes.ventaticket_articulo_id')
             ->join('products', 'products.id', '=', 'ventaticket_articulos.product_id')
             ->selectRaw('product_id,tax_id, sum(importe) as importe')
             ->groupBy('tax_id')
             ->groupBy('product_id')
-            ->whereIn('articulo_taxes.ventaticket_id', $ventaTickets->pluck('id'))
+            ->whereIn('articulo_taxes.ventaticket_id', $ventaTicketIds)
             ->get();
         // Create an associative array to group taxes by product_id
         $groupedTaxes = [];

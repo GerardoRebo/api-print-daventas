@@ -4,24 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use App\Exceptions\OperationalException;
-use App\MyClasses\Factura\Comprobante;
-use App\MyClasses\Factura\ComprobanteConcepto;
-use App\MyClasses\Factura\ComprobanteEmisor;
-use App\MyClasses\Factura\ComprobanteReceptor;
 use App\MyClasses\Factura\FacturaService;
-use App\MyClasses\Factura\Pagos;
-use App\MyClasses\Factura\PagosPago;
-use App\MyClasses\Factura\PagosPagoDoctoRelacionado;
-use App\MyClasses\Factura\PagosPagoDoctoRelacionadoImpuestosDR;
-use App\MyClasses\Factura\PagosPagoDoctoRelacionadoImpuestosDRTrasladoDR;
-use App\MyClasses\Factura\PagosPagoImpuestosP;
-use App\MyClasses\Factura\PagosPagoImpuestosPTrasladoP;
-use App\MyClasses\Factura\PagosTotales;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Abono extends Model
@@ -101,10 +89,9 @@ class Abono extends Model
         $this->pdf_factura_path = $pdfFacturaPath . ".pdf";
         $this->save();
     }
-    function callServie($jsonPath, $jsonPathPago)
+    function callServie()
     {
         $facturaData = $this->getFacturaData();
-        $clavePrivadaSat = Crypt::decryptString($facturaData['clave_privada_sat']);
         $user = $this->deuda->ventaticket->user;
         $storagePath = Storage::disk('local')->path('');
         if (app()->isProduction()) {
@@ -122,12 +109,7 @@ class Abono extends Model
             'dotnet',
             'facturacion.dll',
             $storagePath,
-            $jsonPath,
-            $clavePrivadaSat,
-            $facturaData['cer_path'],
-            $facturaData['key_path'],
-            app()->isLocal() ? 'true' : 'false',
-            $jsonPathPago
+            app()->isLocal() ? 'true' : 'false'
         ];
         $command = implode(' ', $command);
         $result = Process::path(base_path() . '/net7.0')
@@ -146,7 +128,7 @@ class Abono extends Model
                 Storage::disk('local')->delete($facturaData['cer_path']);
                 Storage::disk('local')->delete($facturaData['key_path']);
             } catch (\Throwable $th) {
-                //throw $th;
+                throw $th;
             }
         }
         try {
@@ -157,6 +139,10 @@ class Abono extends Model
                 logger($this->xml_factura_path);
                 $this->save();
                 $this->consumeTimbre(1);
+            } else {
+                $texto = $result->output();
+                $resultado = Str::after($texto, 'Error al timbrar');
+                throw new OperationalException($resultado, 1);
             }
         } catch (\Throwable $th) {
             throw $th;

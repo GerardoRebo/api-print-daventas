@@ -175,6 +175,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/verificarVentas', 'verificarVentas')->name('verificarVentas');
         Route::post('/syncLocalVentas', 'syncLocalVentas')->name('syncLocalVentas');
         Route::post('/facturar/{ticket}', 'facturar')->name('facturar');
+        Route::post('/cancelar_factura/{ticket}', 'cancelarFactura')->name('cancelarFactura');
+        Route::post('/verificar_estado_cancelacion/{ticket}', 'verificarEstadoCancelacion')->name('verificarEstadoCancelacion');
         Route::get('/descargarXml/{ticket}', 'descargarXml')->name('descargarXml');
         Route::get('/descargarPdf/{ticket}', 'descargarPdf')->name('descargarPdf');
         Route::put('/articulo/{articulo}/description', 'updateDescription')->name('updateDescription');
@@ -223,6 +225,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/setproveedor', 'setproveedor')->name('setproveedor');
         Route::post('/setmovimiento', 'setmovimiento')->name('setmovimiento');
         Route::get('/pendientes', 'pendientes')->name('pendientes');
+        Route::post('/updateFolioFactura', 'updateFolioFactura')->name('updateFolioFactura');
         Route::post('/register', 'register')->name('register');
         Route::get('/movimiento', 'getVT')->name('ventaticket');
         Route::post('/destroyarticulo', 'destroyarticulo')->name('destroyarticulo');

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Exceptions\OperationalException;
 use App\MyClasses\Factura\FacturaService;
+use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -66,6 +67,10 @@ class PreFacturaGlobal extends Model
     {
         return $this->morphMany(FoliosUtilizado::class, 'facturable');
     }
+    public function system_folios(): MorphMany
+    {
+        return $this->morphMany(SystemFolio::class, 'facturable');
+    }
 
     function updateFacturadoEn()
     {
@@ -101,10 +106,9 @@ class PreFacturaGlobal extends Model
             'saldo' => $saldoScalar - 1,
         ]);
     }
-    function callServie($jsonPath)
+    function callServie()
     {
         $facturaData = $this->getFacturaData();
-        $clavePrivadaSat = Crypt::decryptString($facturaData['clave_privada_sat']);
         $user = $this->user;
         $storagePath = Storage::disk('local')->path('');
         if (app()->isProduction()) {
@@ -122,10 +126,6 @@ class PreFacturaGlobal extends Model
             'dotnet',
             'facturacion.dll',
             $storagePath,
-            $jsonPath,
-            $clavePrivadaSat,
-            $facturaData['cer_path'],
-            $facturaData['key_path'],
             app()->isLocal() ? 'true' : 'false'
         ];
         $command = implode(' ', $command);
@@ -156,9 +156,13 @@ class PreFacturaGlobal extends Model
                 $this->facturado_en = getMysqlTimestamp($user->configuration?->time_zone);
                 $this->updateFacturadoEn();
                 $this->consumeTimbre(1);
+            } else {
+                $texto = $result->output();
+                $resultado = Str::after($texto, 'Error al timbrar');
+                throw new OperationalException($resultado, 1);
             }
         } catch (\Throwable $th) {
-            //throw $th;
+            throw $th;
         }
         $this->save();
     }

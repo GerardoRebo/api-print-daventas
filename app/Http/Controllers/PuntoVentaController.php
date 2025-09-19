@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Ventaticket;
 use App\Models\VentaticketArticulo;
 use App\MyClasses\Creditos\RealizarAbono;
+use App\MyClasses\Factura\FacturaService;
 use App\MyClasses\PuntoVenta\CreateVentaTicket;
 use App\MyClasses\PuntoVenta\ProductArticuloVenta;
 use App\MyClasses\PuntoVenta\TicketVenta;
@@ -20,6 +21,7 @@ use DateTime;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 
 
@@ -358,12 +360,18 @@ class PuntoVentaController extends Controller
             'uso_cfdi' => 'required|string',
             'serie' => 'nullable|string',
             'clave_privada_local' => 'required|string',
+            'publico_en_general' => 'required|boolean',
+            'nombre_receptor' => 'nullable|string',
+            'facturas_relacionadas' => 'nullable|array',
         ]);
         $formaPago = $request->forma_pago;
         $metodoPago = $request->metodo_pago;
         $usoCfdi = $request->uso_cfdi;
         $serie = $request->serie;
         $clavePrivadaLocal = $request->clave_privada_local;
+        $esPublicoEnGeneral = $request->publico_en_general;
+        $nombre_receptor = $request->nombre_receptor;
+        $facturas_relacionadas = $request->facturas_relacionadas;
 
         $ventaticket = Ventaticket::with(
             'ventaticket_articulos.product',
@@ -378,9 +386,94 @@ class PuntoVentaController extends Controller
         if (!$saldoScalar) {
             throw new OperationalException("No cuentas con suficientes timbres fiscales, , contacta con la administración para solicitar timbres fiscales", 1);
         }
-        return $ventaticket->facturarVenta($formaPago, $metodoPago, $usoCfdi, $serie, $clavePrivadaLocal);
+        return $ventaticket->facturarVenta(
+            $formaPago,
+            $metodoPago,
+            $usoCfdi,
+            $serie,
+            $clavePrivadaLocal,
+            $esPublicoEnGeneral,
+            $nombre_receptor,
+            $facturas_relacionadas,
+        );
 
         return "Facturacion Exitosa";
+    }
+    public function cancelarFactura(Request $request, Ventaticket $ticket)
+    {
+        $request->validate([
+            'motivo' => 'required|string',
+            'sustitucion' => 'nullable|required_if:motivo,01|string',
+        ]);
+        $facturaHelper = new FacturaService;
+        $data = $facturaHelper->getData($ticket);
+        $uuid = $ticket->cfdi_uuid;
+        $total = $ticket->pre_factura->total;
+        $rfcEmisor = $data['rfc'];
+        $rfcReceptor = $ticket?->cliente?->rfc ?? 'XAXX010101000';
+        $pathPfx = $facturaHelper->getPfxPath($ticket);
+        $clavePfx = $data['clave_privada_sat'];
+        $motivo = $request->motivo;
+        $sustitucion = $request->sustitucion;
+
+        if (app()->isProduction()) {
+            $fileContent = Storage::disk('s3')->get($pathPfx);
+            Storage::disk('local')->put($pathPfx, $fileContent);
+        }
+        $command = [
+            'dotnet',
+            'facturacion.dll',
+            'verificar',
+            $uuid,
+            $total,
+            $rfcEmisor,
+            $rfcReceptor,
+            Storage::disk('local')->path($pathPfx),
+            $clavePfx,
+            $motivo,
+            $sustitucion,
+            app()->isLocal() ? 'true' : 'false'
+        ];
+        $command = implode(' ', $command);
+        $result = Process::path(base_path() . '/factura_cancelacion')
+            ->run($command);
+        logger($result->output());
+        if (app()->isProduction()) {
+            Storage::disk('local')->delete($pathPfx);
+        }
+        if ($result->failed()) {
+            logger($result->errorOutput());
+            logger($result->output());
+            throw new OperationalException($result->output(), 1);
+        }
+    }
+    public function verificarEstadoCancelacion(Request $request, Ventaticket $ticket)
+    {
+        $facturaHelper = new FacturaService;
+        $data = $facturaHelper->getData($ticket);
+        $uuid = $ticket->cfdi_uuid;
+        $total = $ticket->pre_factura->total;
+        $rfcEmisor = $data['rfc'];
+        $rfcReceptor = $ticket?->cliente?->rfc ?? 'XAXX010101000';
+        $command = [
+            'dotnet',
+            'facturacion.dll',
+            'verificar',
+            $uuid,
+            $total,
+            $rfcEmisor,
+            $rfcReceptor,
+            app()->isLocal() ? 'true' : 'false'
+        ];
+        $command = implode(' ', $command);
+        $result = Process::path(base_path() . '/factura_cancelacion')
+            ->run($command);
+        logger($result->output());
+        if ($result->failed()) {
+            logger($result->errorOutput());
+            logger($result->output());
+            throw new OperationalException($result->output(), 1);
+        }
     }
     function acceptRetentionRules(Ventaticket $ventaticket)
     {

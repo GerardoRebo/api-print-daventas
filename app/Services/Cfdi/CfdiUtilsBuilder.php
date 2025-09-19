@@ -28,8 +28,15 @@ class CfdiUtilsBuilder
         $this->keyPass = Crypt::decryptString($this->facturaData['clave_privada_sat']);
     }
 
-    public function createFromVenta($serie, $formaPago, $metodoPago, $usoCfdi): string
-    {
+    public function createFromVenta(
+        $serie,
+        $formaPago,
+        $metodoPago,
+        $usoCfdi,
+        $esPublicoEnGeneral,
+        $nombre_receptor,
+        $facturas_relacionadas
+    ): string {
         if (app()->isProduction()) {
             $fileContent = Storage::disk('s3')->get($this->facturaData['cer_path']);
             Storage::disk('local')->put($this->facturaData['cer_path'], $fileContent);
@@ -54,7 +61,9 @@ class CfdiUtilsBuilder
 
         $this->addEmisor();
         // Receptor
-        $this->addReceptor($usoCfdi);
+        $this->addReceptor($usoCfdi, $esPublicoEnGeneral, $nombre_receptor);
+        // Facturas Relacionadas
+        $this->addFacturasRelacionadas($facturas_relacionadas);
         // Conceptos e impuestos
         $this->addConceptos();
 
@@ -132,8 +141,47 @@ class CfdiUtilsBuilder
 
         $this->comprobante->addEmisor($emisor);
     }
-    function addReceptor($usoCfdi)
+    function addFacturasRelacionadas($facturas_relacionadas)
     {
+        if (!empty($facturas_relacionadas)) {
+            // Agrupar por tipo de relación
+            // Agrupar por tipo
+            $agrupadas = [];
+            foreach ($facturas_relacionadas as $rel) {
+                $tipo = $rel['tipo'];
+                if (!isset($agrupadas[$tipo])) {
+                    $agrupadas[$tipo] = [];
+                }
+                $agrupadas[$tipo][] = ['UUID' => $rel['folio']];
+            }
+
+            // Crear los nodos
+            foreach ($agrupadas as $tipoRelacion => $uuids) {
+                // Agregar CfdiRelacionados con el TipoRelacion
+                $cfdiRelacionados = $this->comprobante->addCfdiRelacionados([
+                    'TipoRelacion' => $tipoRelacion,
+                ]);
+
+                // Agregar todos los CfdiRelacionado dentro
+                $cfdiRelacionados->multiCfdiRelacionado(...$uuids);
+            }
+        }
+    }
+    function addReceptor($usoCfdi, $esPublicoEnGeneral, $nombre_receptor)
+    {
+        if ($esPublicoEnGeneral) {
+            if ($nombre_receptor == "PUBLICO EN GENERAL" || $nombre_receptor == "") {
+                $nombre_receptor = 'VENTA AL PUBLICO EN GENERAL';
+            }
+            $this->comprobante->addReceptor([
+                'Rfc' => 'XAXX010101000',
+                'Nombre' => $nombre_receptor,
+                'DomicilioFiscalReceptor' => $this->facturaData['codigo_postal'],
+                'RegimenFiscalReceptor' => "616",
+                'UsoCFDI' => "S01"
+            ]);
+            return;
+        }
         $cliente = $this->preFactura->ventaticket->cliente;
         $this->comprobante->addReceptor([
             'Rfc' => strtoupper($cliente->rfc),

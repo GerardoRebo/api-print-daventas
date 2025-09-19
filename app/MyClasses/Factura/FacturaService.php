@@ -3,7 +3,11 @@
 namespace App\MyClasses\Factura;
 
 use App\Pdf\Translators\PlatesHtmlTranslator;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
+use PhpCfdi\Credentials\Credential;
+use PhpCfdi\Credentials\Pfx\PfxExporter;
+use Illuminate\Support\Str;
 
 class FacturaService
 {
@@ -25,6 +29,7 @@ class FacturaService
             "regimen_fiscal" => $facturacionInfo->regimen_fiscal,
             "cer_path" => $facturacionInfo->cer_path,
             "key_path" => $facturacionInfo->key_path,
+            "pfx_path" => $facturacionInfo->pfx_path,
         ];
     }
     function getGlobalData($organization)
@@ -40,6 +45,7 @@ class FacturaService
             "regimen_fiscal" => $facturacionInfo->regimen_fiscal,
             "cer_path" => $facturacionInfo->cer_path,
             "key_path" => $facturacionInfo->key_path,
+            "pfx_path" => $facturacionInfo->pfx_path,
         ];
     }
     function generatePdf($xmlPath, $output, $user)
@@ -84,5 +90,42 @@ class FacturaService
                 Storage::disk('local')->delete($localPdfPath);
             }
         }
+    }
+    function getPfxPath($ticket)
+    {
+        $facturaData = $this->getData($ticket);
+
+        // si ya existe el pfx devolvemos el path
+        if ($facturaData['pfx_path']) return $facturaData['pfx_path'];
+
+        // descargar .cer y .key de S3 si no existen en local
+        foreach (['cer_path', 'key_path'] as $fileKey) {
+            if (!Storage::disk('local')->exists($facturaData[$fileKey])) {
+                $fileContent = Storage::disk('s3')->get($facturaData[$fileKey]);
+                Storage::disk('local')->put($facturaData[$fileKey], $fileContent);
+            }
+        }
+
+        $storagePath = Storage::disk('local')->path('');
+        $privateKey  = Crypt::decryptString($facturaData['clave_privada_sat']);
+
+        // abrir credenciales
+        $credential = Credential::openFiles(
+            $storagePath . $facturaData['cer_path'],
+            $storagePath . $facturaData['key_path'],
+            $privateKey
+        );
+
+        // exportar PFX
+        $pfxExporter = new PfxExporter($credential);
+        $pfxContents = $pfxExporter->export($privateKey);
+
+        // crear ruta única
+        $pfxPath = 'pfxs/' . Str::uuid() . '.pfx';
+        Storage::put($pfxPath, $pfxContents);
+
+        $ticket->organization->facturacion_info->update(['pfx_path' => $pfxPath]);
+
+        return $pfxPath;
     }
 }

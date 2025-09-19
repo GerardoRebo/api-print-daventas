@@ -76,10 +76,9 @@ class PreFactura extends Model
         return $this->morphMany(SystemFolio::class, 'facturable');
     }
 
-    function callServie($jsonPath)
+    function callServie()
     {
         $facturaData = $this->getFacturaData();
-        $clavePrivadaSat = Crypt::decryptString($facturaData['clave_privada_sat']);
         $user = $this->ventaticket->user;
         $storagePath = Storage::disk('local')->path('');
         if (app()->isProduction()) {
@@ -97,10 +96,6 @@ class PreFactura extends Model
             'dotnet',
             'facturacion.dll',
             $storagePath,
-            $jsonPath,
-            $clavePrivadaSat,
-            $facturaData['cer_path'],
-            $facturaData['key_path'],
             app()->isLocal() ? 'true' : 'false'
         ];
         $command = implode(' ', $command);

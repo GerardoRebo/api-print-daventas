@@ -96,7 +96,7 @@ class OrganizacionController extends Controller
     {
         $organization = Organization::with('facturacion_info')->find($id);
         $request->validate([
-            'name' => "nullable|string|max:70|unique:organizations,name,$organization->id",
+            'name' => "nullable|string",
             'razon_social' => "nullable|string|max:70",
             'regimen_fiscal' => "nullable|string|max:70",
             'codigo_postal' => "nullable|string|max:70",

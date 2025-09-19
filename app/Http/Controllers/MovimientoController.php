@@ -87,7 +87,7 @@ class MovimientoController extends Controller
             $ticketCompra->attachProductsToProveedor();
             $ticketCompra->incrementInventario($almacenO);
             $ticketCompra->createInventarioHistorial($almacenO, "increment", "Compra");
-            $turno->increment('compras', $ticketCompra->getTotal());
+            $turno->increment('compras', $ticketCompra->getSubtotal());
         } else {
             $usersO = $user->getUsersAccordingAlmacen($almacenO);
             $usersD = $user->getUsersAccordingAlmacen($almacenD);
@@ -351,6 +351,14 @@ class MovimientoController extends Controller
         $proveedor = request()->input('params.proveedor');
         $movimiento->update([
             'proveedor_id' => $proveedor
+        ]);
+    }
+    public function updateFolioFactura()
+    {
+        $movimiento = OrdenCompra::find(request()->input('movimiento'));
+        $folioFactura = request()->input('folioFactura');
+        $movimiento->update([
+            'factura_uuid' => $folioFactura
         ]);
     }
 }

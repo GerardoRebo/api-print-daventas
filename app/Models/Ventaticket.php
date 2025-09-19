@@ -7,6 +7,8 @@ use App\MyClasses\Factura\ComprobanteImpuestos;
 use App\MyClasses\Factura\FacturaService;
 use App\MyClasses\PuntoVenta\ProductArticuloVenta;
 use App\Services\Cfdi\CfdiUtilsBuilder;
+use App\Services\Cfdi\PreFacturaArticuloForGlobal;
+use CfdiUtils\CfdiCreator40;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
@@ -241,12 +243,12 @@ class Ventaticket extends Model
             $articulo->incrementInventario(-$cantidad);
         }
     }
-    private function facturaValidations($clavePrivadaLocal)
+    private function facturaValidations($clavePrivadaLocal, $esPublicoEnGeneral)
     {
         if ($this->facturado_en) {
             throw new OperationalException("El ticket ya ha sido facturado", 1);
         }
-        if (!$this->cliente) {
+        if (!$this->cliente && !$esPublicoEnGeneral) {
             throw new OperationalException("El ticket que quieres facturar no tiene especificado un cliente", 1);
         }
         foreach ($this->ventaticket_articulos as $articulo) {
@@ -309,17 +311,86 @@ class Ventaticket extends Model
         $preFactura->save();
         return $preFactura;
     }
+    function createPreFacturaForGlobal($preFacturaGlobal): PreFactura
+    {
+        $preFactura = new PreFactura();
+        $preFactura->ventaticket_id = $this->id;
+        $preFactura->organization_id = $this->organization_id;
+        $preFactura->pre_factura_global_id = $preFacturaGlobal->id;
+        $preFactura->save();
+        $creator = new CfdiCreator40();
+        $comprobante = $creator->comprobante();
+        foreach ($this->ventaticket_articulos as $articulo) {
+            $preArticulo = new PreFacturaArticuloForGlobal($articulo->product, $preFactura);
+            $product = $articulo->product;
+            $preArticulo->pre_factura_id = $preFactura->id;
+            $preArticulo->product_id =  $articulo->product_id;
+            $preArticulo->cantidad = $articulo->cantidad;
+            $preArticulo->precio = $articulo->precio_usado;
 
-    function facturarVenta($formaPago, $metodoPago, $usoCfdi, $serie, $clavePrivadaLocal)
+            if ($product->ObjetoImp == "01") {
+                continue;
+            }
+            $preArticulo->importe = $articulo->precio_final;
+            if ($articulo->taxes->count()) {
+                $preArticulo->descuento = $articulo->importe_descuento;
+            } else {
+                $preArticulo->setBaseImpositiva();
+            }
+            $concepto = $comprobante->addConcepto([
+                'ClaveProdServ' => $product->c_claveProdServ ?? '01010101',
+                'NoIdentificacion' => $product->codigo,
+                'Cantidad' => $preArticulo->cantidad,
+                'ClaveUnidad' => $product->c_ClaveUnidad ?? 'H87',
+                'Descripcion' => $product->name,
+                'ValorUnitario' => $preArticulo->precio,
+                'Importe' => $preArticulo->importe,
+                'Descuento' => $preArticulo->descuento,
+                'ObjetoImp' => $product->ObjetoImp,
+            ]);
+            $preArticulo->concepto = $concepto;
+            if ($articulo->taxes->count()) {
+                $preArticulo->setTaxes($articulo->taxes);
+            } else {
+                $preArticulo->setNewTaxesTraslado();
+            }
+        }
+
+        // Cálculo automático de totales
+        // Paso 1: Generar el objeto SumasConceptos
+        $sumas = $creator->buildSumasConceptos(2);
+
+        // Paso 2: Aplicarlo al comprobante
+        $creator->addSumasConceptos($sumas);
+
+        $preFactura->subtotal = $sumas->getSubTotal();
+        $preFactura->descuento = $sumas->getDescuento();
+        $preFactura->impuesto_traslado = $sumas->getImpuestosTrasladados();
+        $preFactura->impuesto_traslado_array = $sumas->getTraslados();
+        $preFactura->total = $sumas->getTotal();
+        $preFactura->save();
+        return $preFactura;
+    }
+
+    function facturarVenta($formaPago, $metodoPago, $usoCfdi, $serie, $clavePrivadaLocal, $esPublicoEnGeneral, $nombre_receptor, $facturas_relacionadas)
     {
         $user = $this->user;
-        $this->facturaValidations($clavePrivadaLocal);
+        $this->facturaValidations($clavePrivadaLocal, $esPublicoEnGeneral);
 
         /** @var PreFactura $preFactura */
         $preFactura = $this->createPreFactura();
         $preFactura->load('articulos.taxes');
         $cfdiUtils = new CfdiUtilsBuilder($preFactura);
-        $xml = $cfdiUtils->createFromVenta($serie, $formaPago, $metodoPago, $usoCfdi);
+        $xml = $cfdiUtils->createFromVenta(
+            $serie,
+            $formaPago,
+            $metodoPago,
+            $usoCfdi,
+            $esPublicoEnGeneral,
+            $nombre_receptor,
+            $facturas_relacionadas
+        );
+        logger($xml);
 
         $jsonPath = 'facturaTmp/XmlDesdePhpSinTimbrar.xml';
         Storage::disk('local')->put($jsonPath, $xml);

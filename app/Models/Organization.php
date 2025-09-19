@@ -296,7 +296,7 @@ class Organization extends Model
         $this->facturaValidations($clavePrivadaLocal);
 
         /** @var PreFacturaGlobal $preFactura */
-        $preFactura = PreFacturaGlobal::findOrFail($facturaId);
+        $preFactura = PreFacturaGlobal::with('articulos.ventaticket')->findOrFail($facturaId);
         $cfdiUtils = new CfdiUtilsGlobalBuilder($preFactura);
         $xml = $cfdiUtils->createFromVenta($serie, $formaPago, $year, $mes);
 
@@ -327,7 +327,7 @@ class Organization extends Model
                 ->whereIn('id', $chunk)
                 ->chunkById(100, function ($ventatickets) use ($preFacturaGlobal) {
                     foreach ($ventatickets as $ticket) {
-                        if ($ticket->impuesto_retenido) {
+                        if ((float) $ticket->impuesto_retenido > 0) {
                             throw new OperationalException("Producto con impuesto retenido, no procede en factura global", 1);
                         }
                         $preFactura = $ticket->createPreFacturaForGlobal($preFacturaGlobal);
@@ -550,7 +550,8 @@ class Organization extends Model
             ->whereDate('created_at', '<=', $hasta)
             ->whereNull('pre_factura_global_id')
             ->whereNotNull('facturado_en')
-            ->paginate(6);
+            ->orderByDesc('id')
+            ->paginate(10);
     }
     function facturasShow($facturaId, $type)
     {
