@@ -271,6 +271,9 @@ class Ventaticket extends Model
         $facturaHelper = new FacturaService;
         $facturaData = $facturaHelper->getData($this);
         foreach ($facturaData as $key => $value) {
+            if ($key == 'pfx_path') {
+                continue;
+            }
             if (!$value) {
                 throw new OperationalException("No has configurado el siguiente dato necesario para facturar: " . $key, 1);
             }
@@ -390,12 +393,11 @@ class Ventaticket extends Model
             $nombre_receptor,
             $facturas_relacionadas
         );
-        logger($xml);
 
         $jsonPath = 'facturaTmp/XmlDesdePhpSinTimbrar.xml';
         Storage::disk('local')->put($jsonPath, $xml);
 
-        $preFactura->callServie($jsonPath);
+        $preFactura->callServie();
 
         $pdfFacturaPath = "pdf_factura/$user->organization_id/" . $preFactura->ventaticket_id;
         /* create pdf */

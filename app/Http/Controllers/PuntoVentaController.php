@@ -437,7 +437,6 @@ class PuntoVentaController extends Controller
         $command = implode(' ', $command);
         $result = Process::path(base_path() . '/factura_cancelacion')
             ->run($command);
-        logger($result->output());
         if (app()->isProduction()) {
             Storage::disk('local')->delete($pathPfx);
         }
@@ -446,6 +445,9 @@ class PuntoVentaController extends Controller
             logger($result->output());
             throw new OperationalException($result->output(), 1);
         }
+        return [
+            'output' => $result->output(),
+        ];
     }
     public function verificarEstadoCancelacion(Request $request, Ventaticket $ticket)
     {
@@ -468,12 +470,14 @@ class PuntoVentaController extends Controller
         $command = implode(' ', $command);
         $result = Process::path(base_path() . '/factura_cancelacion')
             ->run($command);
-        logger($result->output());
         if ($result->failed()) {
             logger($result->errorOutput());
             logger($result->output());
             throw new OperationalException($result->output(), 1);
         }
+        return [
+            'output' => $result->output(),
+        ];
     }
     function acceptRetentionRules(Ventaticket $ventaticket)
     {

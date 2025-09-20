@@ -431,6 +431,9 @@ class Organization extends Model
         $facturaHelper = new FacturaService;
         $facturaData = $facturaHelper->getGlobalData($this);
         foreach ($facturaData as $key => $value) {
+            if ($key == 'pfx_path') {
+                continue;
+            }
             if (!$value) {
                 throw new OperationalException("No has configurado el siguiente dato necesario para facturar: " . $key, 1);
             }
