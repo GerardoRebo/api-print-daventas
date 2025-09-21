@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('ventatickets', function (Blueprint $table) {
-            $table->string('cfdi_cancellation_status', 12);
+            $table->string('cfdi_cancellation_status', 12)->nullable();
         });
     }
 
