@@ -163,6 +163,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/pendientes', 'pendientes')->name('pendientes');
         Route::post('/register', 'register')->name('register');
         Route::get('/ventaticket', 'getVT')->name('getVT');
+        Route::post('/updateFechaEntrega', 'updateFechaEntrega')->name('updateFechaEntrega');
         Route::post('/destroyarticulo', 'destroyarticulo')->name('destroyarticulo');
         Route::post('/update', 'update')->name('update');
         Route::post('/guardarventa', 'guardarventa')->name('guardarventa');

@@ -572,4 +572,12 @@ class PuntoVentaController extends Controller
 
     //     // return $organization->getVentatickets($desde, $hasta);
     // }
+    public function updateFechaEntrega()
+    {
+        $ventaticket = Ventaticket::find(request()->input('ticket'));
+        $fechaEntrega = request()->input('fechaEntrega');
+        $ventaticket->update([
+            'fecha_entrega' => $fechaEntrega
+        ]);
+    }
 }
