@@ -17,8 +17,13 @@ class CreditoController extends Controller
         $user = $request->user();
         $todos = $request->todos;
         $todos = filter_var($todos, FILTER_VALIDATE_BOOLEAN);
+        $name = $request->keyword;
+
         $creditos = Cliente::when(!$todos, function ($query, $todos) {
             $query->where('saldo_actual', '<>',  0);
+        })->when($name, function ($query, $name) {
+            $query->where('name', 'like', '%' . $name . '%')
+                ->orWhere('email', 'like', '%' . $name . '%');
         })
             ->where('organization_id', $user->organization_id)->get();
         return $creditos;
