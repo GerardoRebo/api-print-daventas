@@ -262,7 +262,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/getconsumibles', 'getconsumibles')->name('getconsumibles');
         Route::get('/showextend/{product}/{almacenActualId}', 'showextend')->name('showextend');
         Route::get('/showextended/{product}', 'showextended')->name('showextended');
-        Route::get('/searchcode/{codigo}/{almacenActualId}', 'searchcode')->name('searchcode');
+        Route::get('/searchcode', 'searchcode')->name('searchcode');
         Route::get('/searchcodesimple', 'searchcodesimple')->name('searchcodesimple');
         Route::put('/ajustarGeneral/{product}/{almacenActualId}', 'ajustarGeneral')->name('ajustarGeneral');
         Route::put('/ajustar/{product}/{almacenActualId}', 'ajustar')->name('ajustar');
