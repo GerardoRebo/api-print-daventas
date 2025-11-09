@@ -414,8 +414,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::controller(CreditoController::class)->prefix('creditos')->name('creditos.')->group(function () {
         Route::get('/getcreditos', 'getcreditos')->name('getcreditos');
         Route::get('/getClienteInfo', 'getClienteInfo')->name('getClienteInfo');
-        Route::get('/getdeudas', 'getdeudas')->name('getdeudas');
-        Route::get('/getalldeudas', 'getalldeudas')->name('getalldeudas');
+        Route::get('{credito}/getdeudas', 'getdeudas')->name('getdeudas');
+        // Route::get('/getalldeudas', 'getalldeudas')->name('getalldeudas');
         Route::post('/realizarabono/{deuda}', 'realizarabono')->name('realizarabono');
         Route::post('/facturarabono/{abono}', 'facturarabono')->name('facturarabono');
         Route::get('/getabonos', 'getabonos')->name('getabonos');

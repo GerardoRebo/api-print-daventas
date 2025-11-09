@@ -28,29 +28,33 @@ class CreditoController extends Controller
             ->where('organization_id', $user->organization_id)->get();
         return $creditos;
     }
-    public function getdeudas(Request $request)
+    public function getdeudas(Request $request, $credito)
     {
         $user = $request->user();
-        $credito = request()->input('credito');
+        $show_settled_loan = $request->input('show_settled_loan', 0);
         $deudas = Deuda::with('ventaticket')->where('organization_id', $user->organization_id)
             ->where('cliente_id', $credito)
-            ->where('saldo', '<>', 0)
+            ->when(!$show_settled_loan, function ($query) {
+                $query->where('saldo', '<>', 0);
+            })
+            // ->orderByDesc('liquidado')
             ->orderByDesc('id')
-            ->get();
+            ->paginate(10);
         return $deudas;
     }
-    public function getalldeudas(Request $request)
-    {
-        $user = $request->user();
-        $credito = request()->input('credito');
-        $deudas = Deuda::with('ventaticket:id,consecutivo')->where('organization_id', $user->organization_id)
-            ->where('cliente_id', $credito)
-            ->orderByDesc('id')
-            ->paginate(5);
-        return $deudas;
-    }
+    // public function getalldeudas(Request $request)
+    // {
+    //     $user = $request->user();
+    //     $credito = request()->input('credito');
+    //     $deudas = Deuda::with('ventaticket:id,consecutivo')->where('organization_id', $user->organization_id)
+    //         ->where('cliente_id', $credito)
+    //         ->orderByDesc('id')
+    //         ->paginate(5);
+    //     return $deudas;
+    // }
     public function getabonos(Request $request)
     {
+        // $suma = Abono::where('organization_id', 1)->whereDate('created_at', now()->toDateString())->sum('abono');
         $user = $request->user();
         $deuda = request()->input('deuda');
         $abonos = Abono::where('organization_id', $user->organization_id)
