@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exceptions\OperationalException;
 use App\Models\InventarioBalance;
 use App\Models\Product;
+use App\Models\PublicTicketLink;
 use App\Models\User;
 use App\Models\Ventaticket;
 use App\Models\VentaticketArticulo;
@@ -579,5 +580,28 @@ class PuntoVentaController extends Controller
         $ventaticket->update([
             'fecha_entrega' => $fechaEntrega
         ]);
+    }
+    public function ticketPublic($token)
+    {
+        $link = PublicTicketLink::with(
+            'ventaticket.ventaticket_articulos',
+            'ventaticket.organization.image',
+            'ventaticket.organization.facturacion_info:infoable_id,razon_social',
+            'ventaticket.deuda.abonos'
+        )->where('token', $token)->firstOrFail();
+        logger($link);
+
+        if ($link->isExpired()) {
+            // abort(410, 'Este ticket ha expirado');  // 410 Gone
+            return [
+                "success" => false,
+                "msg" => "bla",
+            ];
+        }
+
+        return [
+            "success" => true,
+            "ventaticket" => $link->ventaticket,
+        ];
     }
 }

@@ -89,6 +89,7 @@ Route::post('/reset-password', function (Request $request) {
         ? response()->json('status', __($status))
         : response()->json(['email' => [__($status)]]);
 })->middleware('guest')->name('password.update');
+Route::get('/ticket-publico/{token}', [PuntoVentaController::class, "ticketPublic"])->name('ticket.public');
 
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 

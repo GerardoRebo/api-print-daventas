@@ -9,21 +9,28 @@ use App\MyClasses\PuntoVenta\ProductArticuloVenta;
 use App\Services\Cfdi\CfdiUtilsBuilder;
 use App\Services\Cfdi\PreFacturaArticuloForGlobal;
 use CfdiUtils\CfdiCreator40;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Ventaticket extends Model
 {
     use HasFactory;
     protected $guarded = [];
-    protected $with = ['almacen', 'cliente', 'user'];
+    protected $with = ['almacen', 'cliente', 'user', 'public_ticket_link'];
+    protected $appends = ['public_url'];
 
 
     //uno a uno
     public function devolucione()
     {
         return $this->hasOne('App\Models\Devolucione');
+    }
+    public function public_ticket_link()
+    {
+        return $this->hasOne(PublicTicketLink::class);
     }
     public function deuda()
     {
@@ -454,5 +461,26 @@ class Ventaticket extends Model
         $ticketText .= "Visítanos en $link";
 
         return $ticketText;
+    }
+    public function generatePublicTicket()
+    {
+        $venta = $this;
+        $token = Str::uuid()->toString(); // o Str::random(40)
+
+
+        return PublicTicketLink::create([
+            'venta_id' => $venta->id,
+            'token' => $token,
+            'expires_at' => now()->addDays(15),
+        ]);
+    }
+
+    protected function publicUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->public_ticket_link
+                ? config('app.spa_url') . '/ticket/' . $this->public_ticket_link->token
+                : null
+        );
     }
 }
