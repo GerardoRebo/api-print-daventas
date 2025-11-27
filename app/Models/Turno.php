@@ -71,6 +71,7 @@ class Turno extends Model
         $ticketVenta->notifyPreciosAjustados($this->user);
         $ticketVenta->createInventarioHistorial("decrement", "Venta");
         $ticketVenta->ticket->decrementArticulos();
+        $ticketVenta->ticket->generatePublicTicket();
 
         if ($credito) {
             $users = $this->user->getUsersInMyOrg();

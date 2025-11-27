@@ -469,7 +469,7 @@ class Ventaticket extends Model
 
 
         return PublicTicketLink::create([
-            'venta_id' => $venta->id,
+            'ventaticket_id' => $venta->id,
             'token' => $token,
             'expires_at' => now()->addDays(15),
         ]);
