@@ -11,6 +11,7 @@ use App\Http\Controllers\CreditoController;
 use App\Http\Controllers\DepartamentoController;
 use App\Http\Controllers\DevolucionController;
 use App\Http\Controllers\ExcelFileController;
+use App\Http\Controllers\GastoController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\MovimientoController;
 use App\Http\Controllers\OrganizacionController;
@@ -410,6 +411,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/realizarmovimiento', 'realizarmovimiento')->name('realizarmovimiento');
         Route::post('/getconceptos', 'getconceptos')->name('getconceptos');
         Route::get('/{corte}', 'show')->name('show');
+    });
+    Route::controller(GastoController::class)->prefix('gastos')->name('gastos.')->group(function () {
+        Route::get('', 'index')->name('index');
     });
 
     Route::controller(CreditoController::class)->prefix('creditos')->name('creditos.')->group(function () {
