@@ -242,6 +242,7 @@ class CorteController extends Controller
             'cantidad' => 'nullable|numeric',
             'comments' => 'nullable|string',
             'concepto' => 'nullable|string',
+            'es_gasto' => 'nullable|boolean',
             'tipo' => 'nullable|string',
         ]);
         $user = $request->user();
@@ -253,6 +254,7 @@ class CorteController extends Controller
         $cantidad = request()->input('cantidad') ?? 0;
         $comments = request()->input('comments');
         $concepto = request()->input('concepto');
+        $es_gasto = request()->input('es_gasto');
         $conceptoString = Concepto::find($concepto);
         if ($conceptoString) {
             $concepto = $conceptoString->name;
@@ -263,6 +265,7 @@ class CorteController extends Controller
             'turno_id' => $turno->id,
             'tipo' => $tipo,
             'concepto' => $concepto,
+            'es_gasto' => $es_gasto,
             'comentarios' => $comments,
             'cantidad' => $cantidad,
 
