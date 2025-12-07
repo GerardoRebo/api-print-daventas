@@ -294,18 +294,85 @@ class PuntoVentaController extends Controller
     public function misventas(Request $request)
     {
         $user = $request->user();
-        $dfecha = request()->input('dfecha');
-        $hfecha = request()->input('hfecha');
+        $organization = $user->organization;
 
-        $fecha = new DateTime($hfecha);
-        $fecha->add(new DateInterval('P1D'));
-        $misventas = Ventaticket::where('esta_abierto', 0)
+        // ---------------------------
+        // SANITIZACIÓN DE FECHAS
+        // ---------------------------
+        $dfecha = $request->input('dfecha');
+        $hfecha = $request->input('hfecha');
+
+        // Convertir ISO → Y-m-d
+        try {
+            $dfecha = $dfecha ? Carbon::parse($dfecha)->startOfDay() : now()->startOfDay();
+        } catch (\Exception $e) {
+            $dfecha = now()->startOfDay();
+        }
+
+        try {
+            $hfecha = $hfecha ? Carbon::parse($hfecha)->endOfDay() : now()->endOfDay();
+        } catch (\Exception $e) {
+            $hfecha = now()->endOfDay();
+        }
+
+        // ---------------------------
+        // ITEMS POR PÁGINA
+        // ---------------------------
+        $itemsPerPage = $request->input('items_per_page', 20);
+
+        // ---------------------------
+        // QUERY BASE
+        // ---------------------------
+        $query = Ventaticket::query()
+            ->where('esta_abierto', 0)
             ->where('organization_id', $user->organization_id)
             ->where('user_id', $user->id)
-            ->whereBetween('pagado_en', [$dfecha, $fecha])
+            ->whereBetween('pagado_en', [$dfecha, $hfecha]);
+
+        // ---------------------------
+        // FILTROS EXTRA
+        // ---------------------------
+
+        // Filtro por cliente
+        if ($request->filled('cliente_id')) {
+            $query->where('cliente_id', $request->cliente_id);
+        }
+
+        // Filtro por almacén
+        if ($request->filled('almacen_id')) {
+            $query->where('almacen_id', $request->almacen_id);
+        }
+
+        // Filtro por consecutivo
+        if ($request->filled('consecutivo')) {
+            $query->where('consecutivo', 'LIKE', "%{$request->consecutivo}%");
+        }
+        if ($request->filled('turno_id')) {
+            $query->where('turno_id', $request->turno_id);
+        }
+
+        // Filtro por tipo (efectivo / crédito / etc)
+        if ($request->filled('tipo')) {
+            if ($request->tipo == 'efectivo') {
+                $query->where('forma_de_pago', 'E');
+            } else {
+                $query->where('forma_de_pago', 'C');
+            }
+        }
+
+        // ---------------------------
+        // EJECUTAR QUERY Y PAGINAR
+        // ---------------------------
+        $misventas = $query
             ->orderBy('pagado_en', 'desc')
-            ->paginate(20);
-        return $misventas;
+            ->paginate($itemsPerPage)
+            ->appends($request->query()); // preserve filters in pagination links
+
+        return [
+            'ventas'     => $misventas,
+            'almacenes'  => $user->almacens,
+            'clientes'   => $organization->clientes,
+        ];
     }
     public function verificarVentas(Request $request)
     {
