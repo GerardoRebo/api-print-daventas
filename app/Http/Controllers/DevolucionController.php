@@ -48,14 +48,12 @@ class DevolucionController extends Controller
     public function misDevoluciones(Request $request)
     {
         $user = $request->user();
-        $dfecha = request()->input('dfecha');
-        $hfecha = request()->input('hfecha');
-
-        $fecha = new DateTime($hfecha);
-        $fecha->add(new DateInterval('P1D'));
+        $dfecha = request('dfecha', getMysqlDate($user->configuration?->time_zone));
+        $hfecha = request('hfecha', getMysqlDate($user->configuration?->time_zone));
         $misDevoluciones = Devolucione::where('organization_id', $user->organization_id)
             ->where('user_id', $user->id)
-            ->whereBetween('devuelto_en', [$dfecha, $fecha])
+            ->whereDate('devuelto_en', '>=', $dfecha)
+            ->whereDate('devuelto_en', '<=', $hfecha)
             ->orderBy('devuelto_en', 'desc')
             ->paginate(12);
         return $misDevoluciones;

@@ -107,12 +107,30 @@ class CorteController extends Controller
     public function getAcumulados(Request $request)
     {
         $user = $request->user();
-        $dfecha = request()->input('dfecha');
-        $hfecha = request()->input('hfecha');
+
+        $dfecha = request('dfecha', getMysqlDate($user->configuration?->time_zone));
+        $hfecha = request('hfecha', getMysqlDate($user->configuration?->time_zone));
+
         $organizationId = $user->organization_id;
 
-        $fecha = new DateTime($hfecha);
-        $fecha->add(new DateInterval('P1D'));
+        // Convert to Carbon
+        $startDate = Carbon::parse($dfecha);
+        $endDate = Carbon::parse($hfecha);
+
+        // ====== REGLA: máximo 2 años ======
+        $maxRange = $endDate->copy()->subYears(2);
+
+        // Si la fecha inicial es menor que el límite, la ajustamos al límite
+        if ($startDate->lt($maxRange)) {
+            $startDate = $maxRange;
+        }
+
+        // Sobrescribimos las fechas ya ajustadas
+        $dfecha = $startDate->format('Y-m-d');
+        $hfecha = $endDate->format('Y-m-d');
+        // ==================================
+
+        // QUERY
         $dailyTotals = Turno::select(
             DB::raw('DATE(termino_en) as date'),
             DB::raw('SUM(acumulado_ventas) as acumulado_ventas'),
@@ -122,13 +140,14 @@ class CorteController extends Controller
             DB::raw('SUM(devoluciones_ventas_efectivo) as devoluciones_ventas_efectivo')
         )
             ->where('organization_id', $organizationId)
-            ->whereBetween('termino_en', [$dfecha, $fecha])
+            ->whereDate('termino_en', '>=', $dfecha)
+            ->whereDate('termino_en', '<=', $hfecha)
             ->groupBy(DB::raw('DATE(termino_en)'))
             ->orderBy('date')
             ->get();
         // Convert the dates to Carbon instances
         $startDate = Carbon::parse($dfecha);
-        $endDate = Carbon::parse($fecha);
+        $endDate = Carbon::parse($hfecha);
 
         // Create a collection with all dates within the range
         $allDates = collect();

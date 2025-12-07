@@ -240,15 +240,14 @@ class CotizacionController extends Controller
     public function misventas(Request $request)
     {
         $user = $request->user();
-        $dfecha = request()->input('dfecha');
-        $hfecha = request()->input('hfecha');
+        $dfecha = request('dfecha', getMysqlDate($user->configuration?->time_zone));
+        $hfecha = request('hfecha', getMysqlDate($user->configuration?->time_zone));
 
-        $fecha = new DateTime($hfecha);
-        $fecha->add(new DateInterval('P1D'));
         $misventas = Cotizacion::where('esta_abierto', 0)
             ->where('organization_id', $user->organization_id)
             ->where('user_id', $user->id)
-            ->whereBetween('enviada_en', [$dfecha, $fecha])
+            ->whereDate('created_at', '>=', $dfecha)
+            ->whereDate('created_at', '<=', $hfecha)
             ->orderBy('enviada_en', 'desc')
             ->paginate(8);
         return $misventas;
