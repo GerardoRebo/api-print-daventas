@@ -294,6 +294,12 @@ class PuntoVentaController extends Controller
     public function misventas(Request $request)
     {
         $user = $request->user();
+        $isAdmin = $user->hasAnyRole('Owner', 'Admin', 'SuperAdmin');
+        if ($isAdmin) {
+            $user_id = $request->input('user_id', $user->id);
+        } else {
+            $user_id = $user->id;
+        }
         $organization = $user->organization;
 
         // ---------------------------
@@ -326,7 +332,7 @@ class PuntoVentaController extends Controller
         $query = Ventaticket::query()
             ->where('esta_abierto', 0)
             ->where('organization_id', $user->organization_id)
-            ->where('user_id', $user->id)
+            ->where('user_id', $user_id)
             ->whereBetween('pagado_en', [$dfecha, $hfecha]);
 
         // ---------------------------
@@ -372,6 +378,7 @@ class PuntoVentaController extends Controller
             'ventas'     => $misventas,
             'almacenes'  => $user->almacens,
             'clientes'   => $organization->clientes,
+            'users'   => $isAdmin ? $organization->users : [$user],
         ];
     }
     public function verificarVentas(Request $request)

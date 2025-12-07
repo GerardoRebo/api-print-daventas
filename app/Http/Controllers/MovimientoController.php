@@ -278,14 +278,14 @@ class MovimientoController extends Controller
     public function mismovimientos(Request $request)
     {
         $user = $request->user();
-        $dfecha = request()->input('dfecha');
-        $hfecha = request()->input('hfecha');
+        $dfecha = request()->input('dfecha', getMysqlDate($user->configuration?->time_zone));
+        $hfecha = request()->input('hfecha', getMysqlDate($user->configuration?->time_zone));
         $estado = request()->input('estadomovimiento');
+        $items_per_page = request()->input('items_per_page', 10);
+        $consecutivo = request()->input('consecutivo');
+        $tipoMovimiento = request()->input('tipoMovimiento');
         $proveedor = request()->input('proveedor');
         $almacen = request()->input('almacen');
-        $fecha = new DateTime($hfecha);
-        $fecha->add(new DateInterval('P1D'));
-
         if ($estado == '') {
             $estado = null;
         }
@@ -296,13 +296,22 @@ class MovimientoController extends Controller
         })->when($proveedor, function ($query) use ($proveedor) {
             return $query->where('proveedor_id', $proveedor);
         })
+            ->when($tipoMovimiento != null, function ($query) use ($tipoMovimiento) {
+                return $query->where('tipo', $tipoMovimiento);
+            })
+            ->when($consecutivo, function ($query) use ($consecutivo) {
+                return $query->where('consecutivo', $consecutivo);
+            })
             ->when($almacen, function ($query) use ($almacen) {
                 return $query->where('almacen_origen_id', $almacen);
             })
             ->where('organization_id', $user->organization_id)
-            ->whereBetween('enviada_en', [request()->input('dfecha'), $fecha])
+
+            // ->whereBetween('enviada_en', [$dfecha . ' 00:00:00', $hfecha . ' 23:59:59'])
+            ->whereDate('enviada_en', '>=', $dfecha)
+            ->whereDate('enviada_en', '<=', $hfecha)
             ->orderBy('enviada_en', 'desc')
-            ->paginate(20);
+            ->paginate($items_per_page);
     }
     public function setmovimiento()
     {
