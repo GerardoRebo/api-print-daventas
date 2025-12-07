@@ -58,16 +58,22 @@ class CorteController extends Controller
     public function getMisCortes(Request $request)
     {
         $user = $request->user();
-        $dfecha = request()->input('dfecha');
-        $hfecha = request()->input('hfecha');
+        $dfecha = request()->input('dfecha', today()->format('Y-m-d'));
+        $hfecha = request()->input('hfecha', today()->format('Y-m-d'));
+        $user_id = request()->input('user_id');
+        $items_per_page = request()->input('items_per_page');
 
-        $fecha = new DateTime($hfecha);
-        $fecha->add(new DateInterval('P1D'));
+
         $miscortesPaginados = Turno::where('organization_id', $user->organization_id)
-            ->whereBetween('inicio_en', [$dfecha, $fecha])
-            ->orderBy('inicio_en', 'desc')
+            ->whereDate('inicio_en', '>=', $dfecha)
+            ->whereDate('inicio_en', '<=', $hfecha)
+            ->when($user_id, function ($query) use ($user_id) {
+                $query->where('user_id', $user_id);
+            })
+            ->orderByDesc('inicio_en')
             ->orderByDesc('id')
-            ->paginate(7);
+            ->paginate($items_per_page ?? 10);
+
         $miscortes = $miscortesPaginados->getCollection()->map(function ($item, $key) {
 
             $suma = $item->dinero_inicial +
@@ -92,7 +98,11 @@ class CorteController extends Controller
             'abonos_efectivo' => $abonos_efectivo,
             'compras' => $compras,
         ];
-        return ['miscortes' => $miscortesPaginados->setCollection($miscortes), 'acumulados' => $data];
+        return [
+            'users' => $user->getUsersInMyOrg(),
+            'miscortes' => $miscortesPaginados->setCollection($miscortes),
+            'acumulados' => $data
+        ];
     }
     public function getAcumulados(Request $request)
     {
