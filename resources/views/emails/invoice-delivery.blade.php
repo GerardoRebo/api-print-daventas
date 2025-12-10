@@ -6,8 +6,8 @@
             </h2>
 
             <p style="color: #555;">
-                @if ($sender)
-                    Hola, este es un correo automático enviado por {{ $sender }}.
+                @if ($senderName)
+                    Hola, este es un correo automático enviado por {{ $senderName }}.
                 @else
                     Hola, este es un correo automático enviado por {{ config('app.name') }}.
                 @endif

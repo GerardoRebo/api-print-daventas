@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\OperationalException;
+use App\Mail\FacturaMailable;
 use App\Models\InventarioBalance;
 use App\Models\Product;
 use App\Models\PublicTicketLink;
@@ -21,6 +22,7 @@ use DateInterval;
 use DateTime;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;

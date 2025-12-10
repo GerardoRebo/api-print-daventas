@@ -34,7 +34,7 @@ class FacturaMailable extends Mailable
             ->view('emails.invoice-delivery')
             ->with([
                 'daysValid' => $this->data['daysValid'] ?? 15,
-                'data' => $this->data,
+                'senderName' => $this->data['sender']['name'] ?? '',
             ]);
 
         // Reply-To (optional)
