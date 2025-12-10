@@ -159,7 +159,7 @@ class TicketVenta
     }
     public function getSpecificAlmacenCliente($id)
     {
-        return $this->ticket = Ventaticket::with('latestPreFactura')->find($id);
+        return $this->ticket = Ventaticket::with('latestPreFactura', 'organization', 'cliente')->find($id);
     }
     public function getArticulosExtended()
     {

@@ -67,10 +67,6 @@ class Organization extends Model
     {
         return $this->hasMany(SystemFolio::class);
     }
-    public function clientes()
-    {
-        return $this->hasMany(Cliente::class);
-    }
     function get_active_users_count()
     {
         return $this->users()->where('activo', true)->count();

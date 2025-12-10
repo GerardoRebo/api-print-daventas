@@ -28,15 +28,19 @@ class BrevoService
      * @param bool $sandboxMode
      * @return \Brevo\Client\Model\CreateSmtpEmail
      */
-    public function sendEmail($toEmail, $toName, $subject, $htmlContent, $textContent = null, $sandboxMode = false)
+    public function sendEmail($toEmail, $toName, $subject, $htmlContent, $textContent = null, $sandboxMode = false, $sender = null, $replyTo = null)
     {
+        $sender = $sender ?? ['name' => config('app.name'), 'email' => 'servicioalcliente@daventas.com'];
         $emailData = [
             'to' => [['email' => $toEmail, 'name' => $toName]],
             'subject' => $subject,
             'htmlContent' => $htmlContent,
             'textContent' => $textContent ?? strip_tags($htmlContent),
-            'sender' => ['name' => 'Tu App', 'email' => 'servicioalcliente@daventas.com'],
+            'sender' => $sender,
         ];
+        if ($replyTo && isset($replyTo['email'], $replyTo['name'])) {
+            $emailData['replyTo'] = ['email' => $replyTo['email'], 'name' => $replyTo['name']];
+        }
 
         // Si queremos sandbox, agregamos el header
         if ($sandboxMode) {

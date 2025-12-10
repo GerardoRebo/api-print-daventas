@@ -78,6 +78,9 @@ return [
                 'log',
             ],
         ],
+        'brevo' => [
+            'transport' => 'brevo',
+        ],
     ],
 
     /*

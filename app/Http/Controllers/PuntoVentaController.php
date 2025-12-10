@@ -184,6 +184,83 @@ class PuntoVentaController extends Controller
         $turno->decrement('acumulado_ganancias', $ticketVenta->ticket->ganancia);
         return;
     }
+    public function sendEmail(Request $request, Ventaticket $ticket)
+    {
+        $request->validate([
+            'fromEmail' => 'required|email',
+            'fromName'  => 'nullable|string',
+            'toEmail'   => 'required|email',
+            'toName'    => 'nullable|string',
+        ]);
+
+        $daysValid = 30;
+
+        $fromEmail = $request->fromEmail;
+        $fromName  = $request->fromName ?? '';
+        $toEmail   = $request->toEmail;
+        $toName    = $request->toName ?? '';
+
+        // Generate PDF and XML URLs
+        if (app()->environment('local')) {
+            $pdfUrl = Storage::url($ticket->pdf_factura_path);
+            $xmlUrl = Storage::url($ticket->xml_factura_path);
+        } else {
+            $pdfUrl = Storage::temporaryUrl(
+                $ticket->pdf_factura_path,
+                now()->addDays($daysValid)
+            );
+            $xmlUrl = Storage::temporaryUrl(
+                $ticket->xml_factura_path,
+                now()->addDays($daysValid)
+            );
+        }
+
+        $data = [
+            'sender' => [
+                'email' => 'facturacion@daventas.com',
+                'name'  => config('app.name'),
+            ],
+
+            'recipient' => [
+                'email' => $toEmail,
+                'name'  => $toName,
+            ],
+
+            'replyTo' => [
+                'email' => $fromEmail,
+                'name'  => $fromName,
+            ],
+
+            'invoice' => [
+                'pdfUrl'     => $pdfUrl,
+                'xmlUrl'     => $xmlUrl,
+                'pdfPath'    => null,
+                'xmlPath'    => null,
+                'message'    => "Hola {$toName}, tu factura está lista para descargar.",
+                'daysValid'  => $daysValid,
+            ],
+
+            'sandbox' => app()->isLocal(),
+        ];
+
+        // Local environment only logs the output
+        if (app()->isLocal()) {
+            logger("Email de factura:");
+            logger("Para: {$toName} <{$toEmail}>");
+            logger("De: facturacion@daventas.com <" . config('app.name') . ">");
+            logger("Reply-To: {$fromName} <{$fromEmail}>");
+            logger("Asunto: Tu factura está lista – {$ticket->consecutivo}");
+            logger("PDF URL: {$pdfUrl}");
+            logger("XML URL: {$xmlUrl}");
+        } else {
+            // Send using the Brevo transport
+            Mail::mailer('brevo')
+                ->to($toEmail, $toName)
+                ->send(new FacturaMailable($data));
+        }
+
+        return response()->json(['message' => 'Factura enviada correctamente']);
+    }
     public function getVT(Request $request)
     {
         /** @var User $user */
@@ -293,6 +370,7 @@ class PuntoVentaController extends Controller
     }
     public function misventas(Request $request)
     {
+        logger('here');
         $user = $request->user();
         $isAdmin = $user->hasAnyRole('Owner', 'Admin', 'SuperAdmin');
         if ($isAdmin) {
@@ -332,16 +410,16 @@ class PuntoVentaController extends Controller
         $query = Ventaticket::query()
             ->where('esta_abierto', 0)
             ->where('organization_id', $user->organization_id)
-            ->where('user_id', $user_id)
-            ->whereBetween('pagado_en', [$dfecha, $hfecha]);
+            ->where('user_id', $user_id);
+        // ->whereBetween('pagado_en', [$dfecha, $hfecha]);
 
         // ---------------------------
         // FILTROS EXTRA
         // ---------------------------
 
         // Filtro por cliente
-        if ($request->filled('cliente_id')) {
-            $query->where('cliente_id', $request->cliente_id);
+        if (!$request->consecutivo) {
+            $query->whereBetween('pagado_en', [$dfecha, $hfecha]);
         }
 
         // Filtro por almacén

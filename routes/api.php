@@ -180,6 +180,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/facturar/{ticket}', 'facturar')->name('facturar');
         Route::post('/cancelar_factura/{ticket}', 'cancelarFactura')->name('cancelarFactura');
         Route::post('/verificar_estado_cancelacion/{ticket}', 'verificarEstadoCancelacion')->name('verificarEstadoCancelacion');
+        Route::post('/sendEmail/{ticket}', 'sendEmail')->name('sendEmail');
         Route::get('/descargarXml/{ticket}', 'descargarXml')->name('descargarXml');
         Route::get('/descargarPdf/{ticket}', 'descargarPdf')->name('descargarPdf');
         Route::put('/articulo/{articulo}/description', 'updateDescription')->name('updateDescription');
