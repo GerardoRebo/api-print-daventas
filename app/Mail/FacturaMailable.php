@@ -26,7 +26,7 @@ class FacturaMailable extends Mailable
     public function build()
     {
         $email = $this
-            ->subject($this->data['message'] ?? "Tu factura está lista")
+            ->subject($this->data['invoice']['message'] ?? "Tu factura está lista")
             ->from(
                 $this->data['sender']['email'],
                 $this->data['sender']['name'] ?? null
