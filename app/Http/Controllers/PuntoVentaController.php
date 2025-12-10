@@ -193,7 +193,7 @@ class PuntoVentaController extends Controller
             'toName'    => 'nullable|string',
         ]);
 
-        $daysValid = 30;
+        $daysValid = 7;
 
         $fromEmail = $request->fromEmail;
         $fromName  = $request->fromName ?? '';
@@ -370,7 +370,6 @@ class PuntoVentaController extends Controller
     }
     public function misventas(Request $request)
     {
-        logger('here');
         $user = $request->user();
         $isAdmin = $user->hasAnyRole('Owner', 'Admin', 'SuperAdmin');
         if ($isAdmin) {
