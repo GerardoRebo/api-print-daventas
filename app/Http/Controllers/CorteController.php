@@ -137,6 +137,7 @@ class CorteController extends Controller
             DB::raw('SUM(abonos_efectivo) as abonos_efectivo'),
             DB::raw('SUM(acumulado_ganancias) as acumulado_ganancias'),
             DB::raw('SUM(compras) as compras'),
+            DB::raw('SUM(gastos) as gastos'),
             DB::raw('SUM(devoluciones_ventas_efectivo) as devoluciones_ventas_efectivo')
         )
             ->where('organization_id', $organizationId)
@@ -164,12 +165,14 @@ class CorteController extends Controller
                 'abonos_efectivo' => $record->abonos_efectivo ?? 0,
                 'acumulado_ganancias' => $record->acumulado_ganancias ?? 0,
                 'compras' => $record->compras ?? 0,
+                'gastos' => $record->gastos ?? 0,
                 'devoluciones_ventas_efectivo' => $record->devoluciones_ventas_efectivo ?? 0,
             ];
         });
         $totals = $dailyTotals->reduce(function ($carry, $item) {
             $carry['acumulado_ventas'] += $item['acumulado_ventas'];
             $carry['compras'] += $item['compras'];
+            $carry['gastos'] += $item['gastos'];
             $carry['acumulado_ganancias'] += $item['acumulado_ganancias'];
             $carry['abonos_efectivo'] += $item['abonos_efectivo'];
             $carry['devoluciones_ventas_efectivo'] += $item['devoluciones_ventas_efectivo'];
@@ -177,6 +180,7 @@ class CorteController extends Controller
         }, [
             'acumulado_ventas' => 0,
             'compras' => 0,
+            'gastos' => 0,
             'acumulado_ganancias' => 0,
             'abonos_efectivo' => 0,
             'devoluciones_ventas_efectivo' => 0,
@@ -300,10 +304,11 @@ class CorteController extends Controller
 
 
         ]);
-        if ($tipo == 'entrada') {
+        if ($es_gasto) {
+            $turno->increment('gastos', $cantidad);
+        } elseif ($tipo == 'entrada') {
             $turno->increment('acumulado_entradas', $cantidad);
         } else {
-
             $turno->increment('acumulado_salidas', $cantidad);
         }
         return $turno;
