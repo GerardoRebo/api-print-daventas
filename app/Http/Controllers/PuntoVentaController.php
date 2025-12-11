@@ -419,6 +419,9 @@ class PuntoVentaController extends Controller
         // ---------------------------
 
         // Filtro por cliente
+        if ($request->filled('cliente_id')) {
+            $query->where('cliente_id', $request->cliente_id);
+        }
         if (!$request->consecutivo) {
             $query->whereBetween('pagado_en', [$dfecha, $hfecha]);
         }
