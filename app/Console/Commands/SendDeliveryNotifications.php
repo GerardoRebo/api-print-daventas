@@ -45,8 +45,13 @@ class SendDeliveryNotifications extends Command
     {
         $today = Carbon::today();
 
-        // Obtener todos los tickets que se entregan hoy
+        // Obtener todos los tickets que se entregan hoy de organizaciones con TelegramConfig
         $tickets = Ventaticket::whereDate('fecha_entrega', $today)
+            ->whereHas('organization', function ($query) {
+                $query->whereHas('telegramConfigs', function ($q) {
+                    $q->where('is_active', true);
+                });
+            })
             ->with(['user.configuration', 'organization', 'cliente', 'ventaticket_articulos'])
             ->get();
 
@@ -66,8 +71,13 @@ class SendDeliveryNotifications extends Command
     {
         $tomorrow = Carbon::tomorrow();
 
-        // Obtener todos los tickets que se entregan mañana
+        // Obtener todos los tickets que se entregan mañana de organizaciones con TelegramConfig
         $tickets = Ventaticket::whereDate('fecha_entrega', $tomorrow)
+            ->whereHas('organization', function ($query) {
+                $query->whereHas('telegramConfigs', function ($q) {
+                    $q->where('is_active', true);
+                });
+            })
             ->with(['user.configuration', 'organization', 'cliente', 'ventaticket_articulos'])
             ->get();
 
@@ -158,7 +168,8 @@ class SendDeliveryNotifications extends Command
             $message .= "<b>Descripción:</b> <code>{$ticket->nombre}</code>\n\n";
         }
 
-        $message .= "⚠️ Por favor, asegúrate de completar esta entrega a tiempo.";
+        $message .= "⚠️ Por favor, asegúrate de completar esta entrega a tiempo.\n\n";
+        $message .= "🔗 <a href=\"https://print.daventas.com\">Ver en Print Daventas</a>";
 
         return $message;
     }

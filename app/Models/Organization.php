@@ -67,6 +67,10 @@ class Organization extends Model
     {
         return $this->hasMany(SystemFolio::class);
     }
+    public function telegramConfigs()
+    {
+        return $this->hasMany(TelegramConfig::class);
+    }
     function get_active_users_count()
     {
         return $this->users()->where('activo', true)->count();
