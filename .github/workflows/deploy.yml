@@ -1,0 +1,27 @@
+name: Deploy Api Print Daventas
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run remote commands
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd /var/www/daventas/api-print-daventas
+            git pull origin main
+            composer install --no-dev --optimize-autoloader
+            supervisorctl restart all
+            php artisan migrate --force
+            php artisan optimize
+
+
