@@ -24,6 +24,7 @@ use App\Http\Controllers\PuntoVentaController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\RetentionRulesController;
 use App\Http\Controllers\TaxController;
+use App\Http\Controllers\TelegramConfigController;
 use App\Http\Controllers\TiendaController;
 use App\Http\Controllers\TiendaOrderController;
 use App\Http\Controllers\UserController;
@@ -426,6 +427,14 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/facturarabono/{abono}', 'facturarabono')->name('facturarabono');
         Route::get('/getabonos', 'getabonos')->name('getabonos');
         Route::get('/getsaldo', 'getsaldo')->name('getsaldo');
+    });
+    Route::controller(TelegramConfigController::class)->prefix('telegram')->name('telegram.')->group(function () {
+        Route::get('', 'index')->name('index');
+        Route::post('', 'store')->name('store');
+        Route::get('/{telegramConfig}', 'show')->name('show');
+        Route::put('/{telegramConfig}', 'update')->name('update');
+        Route::delete('/{telegramConfig}', 'destroy')->name('destroy');
+        Route::post('/{telegramConfig}/test', 'testMessage')->name('test');
     });
 });
 Route::middleware('auth.shop_tienda')->prefix('tienda/')->name('tienda.')->group(function () {
