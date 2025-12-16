@@ -54,7 +54,7 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
-    'spa_url' => env('SPA_URL', 'https://app.daventas.com'),
+    'spa_url' => env('SPA_URL', 'https://print.daventas.com'),
 
     'asset_url' => env('ASSET_URL', null),
     'shop_tienda_token' => env('SHOP_TIENDA_TOKEN', null),
