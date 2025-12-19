@@ -103,10 +103,12 @@ class OrganizacionController extends Controller
             'codigo_postal' => "nullable|string|max:70",
             'rfc' => "nullable|string|max:70",
             'c_periodicidad' => "nullable|string|max:70",
+            'show_fiscal_info' => "nullable|boolean",
         ]);
         $organization->update([
             "name" => $request->name,
             "email" => $request->email,
+            "show_fiscal_info" => $request->show_fiscal_info !== null ? $request->show_fiscal_info : $organization->show_fiscal_info,
         ]);
         $razon_social = $request->razon_social;
         $regimen_fiscal = $request->regimen_fiscal;

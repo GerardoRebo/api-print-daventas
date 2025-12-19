@@ -292,7 +292,7 @@ class PuntoVentaController extends Controller
         return Ventaticket::with(
             'ventaticket_articulos',
             'organization.image',
-            'organization.facturacion_info:infoable_id,razon_social',
+            'organization.facturacion_info:infoable_id,razon_social,rfc',
             'deuda.abonos'
         )->findOrFail($id);
     }
