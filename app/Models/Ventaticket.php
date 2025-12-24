@@ -187,32 +187,17 @@ class Ventaticket extends Model
     public function getArticulosExtended()
     {
         $almacen = $this->getAlmacen();
-        $ventaticketArticulos = VentaticketArticulo::with('product.product_components.product_hijo', 'product.images')
-            ->leftJoin('inventario_balances', function ($join,) use ($almacen) {
+
+        // Cargar artículos con productos (sin kits)
+        $ventaticketArticulos = $this->ventaticket_articulos()
+            ->with('product.product_components.product_hijo', 'product.images')
+            ->leftJoin('inventario_balances', function ($join) use ($almacen) {
                 $join->on('ventaticket_articulos.product_id', '=', 'inventario_balances.product_id')
                     ->where('inventario_balances.almacen_id', '=', $almacen);
             })
-            ->where('ventaticket_id', $this->id)
-            ->leftJoin('products', 'ventaticket_articulos.product_id', '=', 'products.id')
             ->select(
-                'products.*',
-                'inventario_balances.cantidad_actual',
-                'ventaticket_articulos.description',
-                'ventaticket_articulos.cantidad',
-                'ventaticket_articulos.ancho',
-                'ventaticket_articulos.alto',
-                'ventaticket_articulos.area_total',
-                'ventaticket_articulos.id',
-                'ventaticket_articulos.cantidad_devuelta',
-                'ventaticket_articulos.impuesto_traslado',
-                'ventaticket_articulos.impuesto_retenido',
-                'ventaticket_articulos.importe_descuento',
-                'ventaticket_articulos.descuento',
-                'ventaticket_articulos.fue_devuelto',
-                'ventaticket_articulos.product_id',
-                'ventaticket_articulos.product_name',
-                'ventaticket_articulos.precio_usado',
-                'ventaticket_articulos.precio_final'
+                'ventaticket_articulos.*',
+                'inventario_balances.cantidad_actual'
             )
             ->orderByDesc('ventaticket_articulos.id')
             ->get();

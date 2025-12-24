@@ -216,10 +216,11 @@ class User extends Authenticatable implements MustVerifyEmail
     }
     public function getVentaticketAlmacenCliente(): Ventaticket
     {
-        $ventaticket = Ventaticket::where('esta_abierto', 1)
+        $ventaticket = Ventaticket::where('user_id', $this->id)
             ->where('organization_id', $this->organization_id)
             ->where('pendiente', 0)
-            ->where('user_id', $this->id)->first();
+            ->where('esta_abierto', 1)
+            ->first();
 
         if (!$ventaticket) {
             $puntoVentaLogic = new CreateVentaTicket;

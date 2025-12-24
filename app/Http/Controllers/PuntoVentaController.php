@@ -267,8 +267,8 @@ class PuntoVentaController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $ventaticket = $user->getVentaticketAlmacenCliente($user);
-        return [$ventaticket, $ventaticket->getArticulosExtended($user)];
+        $ventaticket = $user->getVentaticketAlmacenCliente();
+        return [$ventaticket, $ventaticket->getArticulosExtended()];
     }
     public function getLastVentaticket(Request $request)
     {

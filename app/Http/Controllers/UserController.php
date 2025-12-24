@@ -93,11 +93,11 @@ class UserController extends Controller
     }
     public function getCountNotf()
     {
-        return auth()->user()->unreadNotifications->count();
+        return auth()->user()->unreadNotifications()->count();
     }
     public function getNotifications(Request $request)
     {
-        $notifications = auth()->user()->unreadNotifications;
+        $notifications = auth()->user()->unreadNotifications()->get();
         auth()->user()->unreadNotifications()->update(['read_at' => now()]);
         return $notifications;
     }
