@@ -34,14 +34,14 @@ class CreditoController extends Controller
         $show_settled_loan = $request->input('show_settled_loan', 0);
 
         // Obtener el saldo global de TODAS las deudas del cliente
-        $saldoGlobal = Deuda::where('organization_id', $user->active_organization_id)
+        $saldoGlobal = Deuda::where('organization_id', $user->organization_id)
             ->where('cliente_id', $credito)
             ->when(!$show_settled_loan, function ($query) {
                 $query->where('saldo', '<>', 0);
             })
             ->sum('saldo');
 
-        $deudas = Deuda::with('ventaticket')->where('organization_id', $user->active_organization_id)
+        $deudas = Deuda::with('ventaticket')->where('organization_id', $user->organization_id)
             ->where('cliente_id', $credito)
             ->when(!$show_settled_loan, function ($query) {
                 $query->where('saldo', '<>', 0);
