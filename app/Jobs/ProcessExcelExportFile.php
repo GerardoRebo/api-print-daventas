@@ -47,7 +47,7 @@ class ProcessExcelExportFile implements ShouldQueue
         } else {
             $basicQuery = $productLogic->basicQueryConsolidado();
         }
-        $orgId = $this->user->organization_id;
+        $orgId = $this->user->active_organization_id;
         if ($this->almacen) {
             $columns = [
                 'products.id',

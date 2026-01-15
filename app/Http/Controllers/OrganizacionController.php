@@ -366,7 +366,7 @@ class OrganizacionController extends Controller
 
         $authUser = auth()->user();
         if (!$authUser->hasAnyRole('Owner', 'Admin')) return;
-        $orgId = $authUser->organization_id;
+        $orgId = $authUser->active_organization_id;
         $user = User::find($user);
         if ($user->active_organization_id != $orgId) return;
         $user->active_organization_id = null;
@@ -379,7 +379,7 @@ class OrganizacionController extends Controller
         $user = request()->input('userId');
         $authUser = auth()->user();
         if (!$authUser->hasAnyRole('Owner', 'Admin')) return;
-        $orgId = $authUser->organization_id;
+        $orgId = $authUser->active_organization_id;
         $user = User::find($user);
         if ($user->hasAnyRole('Owner')) {
             throw new OperationalException("No es posible desactivar al dueño de la organizacion", 1);
@@ -401,7 +401,7 @@ class OrganizacionController extends Controller
         $almacen = Almacen::find(request()->input('almacenId'));
         $authUser = auth()->user();
         if (!$authUser->hasAnyRole('Owner', 'Admin')) throw new OperationalException("No cuentas con el permiso", 1);;
-        $orgId = $authUser->organization_id;
+        $orgId = $authUser->active_organization_id;
         if ($almacen->organization_id != $orgId) throw new OperationalException("No es de tu organizacion", 1);
         $organization = $authUser->organization;
         $organizationPlan = $organization->latestOrganizationPlan;
@@ -513,7 +513,7 @@ class OrganizacionController extends Controller
 
         $id = request()->input('id');
         $invitation = Invitation::findOrFail($id);
-        if ($invitation->organization_id != $ownerUser->organization_id) return "No tienes permiso";
+        if ($invitation->organization_id != $ownerUser->active_organization_id) return "No tienes permiso";
         User::destroy($invitation->user_id);
         $invitation->delete();
         return;
@@ -525,7 +525,7 @@ class OrganizacionController extends Controller
             'password' => ['required', 'min:8']
         ]);
         $ownerUser = $request->user();
-        $organization = $ownerUser->organization_id;
+        $organization = $ownerUser->active_organization_id;
         $user = User::where('email', $request->email)->first();
         if ($user) {
             if ($user->active_organization_id) {

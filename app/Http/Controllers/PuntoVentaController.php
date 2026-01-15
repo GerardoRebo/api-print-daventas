@@ -138,7 +138,7 @@ class PuntoVentaController extends Controller
         if ($ticketVenta->ticket->pagado_en) {
             return;
         }
-        $turno->guardarVenta($ticketVenta->ticket, $forma_pago, $credito);
+        $turno->guardarVenta($ticketVenta, $forma_pago, $credito);
 
         return;
     }
