@@ -342,8 +342,8 @@ class TicketCompra
                 $cantidad = -$cantidadEnTicket;
             }
             array_push($articulosHistory, [
-                'user_id' => $user->i$user->active_organization_id
-                'organization_id' => $user->organization_id,
+                'user_id' => $user->id,
+                'organization_id' => $user->active_organization_id,
                 'product_id' => $articulo->product_id,
                 'almacen_id' => $almacen,
                 'cantidad' => $cantidad,

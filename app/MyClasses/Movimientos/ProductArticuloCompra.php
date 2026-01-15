@@ -13,6 +13,8 @@ class ProductArticuloCompra
     {
         if ($type == 'product') {
             $this->product = Product::find($id);
+            logger('here');
+            logger($this->product);
         } elseif ($type == 'article') {
             $product = ArticulosOc::select('product_id')->find($id);
             $this->product = Product::where('id', $product?->product_id)->first();
