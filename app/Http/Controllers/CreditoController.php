@@ -25,7 +25,7 @@ class CreditoController extends Controller
             $query->where('name', 'like', '%' . $name . '%')
                 ->orWhere('email', 'like', '%' . $name . '%');
         })
-            ->where('organization_id', $user->organization_id)->get();
+            ->where('organization_id', $user->active_organization_id)->get();
         return $creditos;
     }
     public function getdeudas(Request $request, $credito)
@@ -34,14 +34,14 @@ class CreditoController extends Controller
         $show_settled_loan = $request->input('show_settled_loan', 0);
 
         // Obtener el saldo global de TODAS las deudas del cliente
-        $saldoGlobal = Deuda::where('organization_id', $user->organization_id)
+        $saldoGlobal = Deuda::where('organization_id', $user->active_organization_id)
             ->where('cliente_id', $credito)
             ->when(!$show_settled_loan, function ($query) {
                 $query->where('saldo', '<>', 0);
             })
             ->sum('saldo');
 
-        $deudas = Deuda::with('ventaticket')->where('organization_id', $user->organization_id)
+        $deudas = Deuda::with('ventaticket')->where('organization_id', $user->active_organization_id)
             ->where('cliente_id', $credito)
             ->when(!$show_settled_loan, function ($query) {
                 $query->where('saldo', '<>', 0);
@@ -63,7 +63,7 @@ class CreditoController extends Controller
     // {
     //     $user = $request->user();
     //     $credito = request()->input('credito');
-    //     $deudas = Deuda::with('ventaticket:id,consecutivo')->where('organization_id', $user->organization_id)
+    //     $deudas = Deuda::with('ventaticket:id,consecutivo')->where('organization_id', $user->active_organization_id)
     //         ->where('cliente_id', $credito)
     //         ->orderByDesc('id')
     //         ->paginate(5);
@@ -74,7 +74,7 @@ class CreditoController extends Controller
         // $suma = Abono::where('organization_id', 1)->whereDate('created_at', now()->toDateString())->sum('abono');
         $user = $request->user();
         $deuda = request()->input('deuda');
-        $abonos = Abono::where('organization_id', $user->organization_id)
+        $abonos = Abono::where('organization_id', $user->active_organization_id)
             ->where('deuda_id', $deuda)
             ->latest()
             ->get();

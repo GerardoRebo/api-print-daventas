@@ -139,7 +139,7 @@ class PreFacturaGlobal extends Model
             throw new OperationalException($result->output(), 1);
         }
         $idForPath = $this->id;
-        $xmlFacturaPath = "xml_factura_global/$user->organization_id/$idForPath";
+        $xmlFacturaPath = "xml_factura_global/$user->active_organization_id/$idForPath";
         if (app()->isProduction()) {
             try {
                 Storage::disk('local')->delete($facturaData['cer_path']);

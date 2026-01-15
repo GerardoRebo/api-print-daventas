@@ -158,6 +158,7 @@ class ProductController extends Controller
         $products = $basicQuery->where('products.organization_id', $user->active_organization_id)
             ->where('products.id', $product->id)
             ->get();
+        logger('qewr');
 
         if ($products[0]->porcentaje_ganancia == 0) {
             try {

@@ -30,6 +30,11 @@ class Product extends Model
     {
         return $this->hasMany('App\Models\ProductComponent');
     }
+    public function product_consumibles()
+    {
+        return $this->hasMany('App\Models\ProductConsumible');
+    }
+
     public function inventario_balances()
     {
         return $this->hasMany('App\Models\InventarioBalance');
@@ -191,6 +196,11 @@ class Product extends Model
         }
         return null;
     }
+    function getConsumiblePadre()
+    {
+        return ProductConsumible::where('consumible_id', $this->id)->first();
+    }
+
     function getDescuentoCantidad($cantidad, $precio)
     {
         //importe
@@ -203,7 +213,7 @@ class Product extends Model
         }
         $descuento * $cantidad;
     }
-    public static function getCantidadesArray() {}
+
     public function procesaAjusteCosto(User $user, $pcosto, $descripcion)
     {
         $productA = $this;
@@ -211,6 +221,11 @@ class Product extends Model
 
         $users = $user->getUsersInMyOrg();
         Notification::send($users, new AjusteMPrecio($user->name, $productA->name, $pcosto, 'Ajuste Manual de costo'));
+        $consumiblePadre = $this->getConsumiblePadre();
+        if ($consumiblePadre) {
+            $consumiblePadre->product->procesaAjusteCosto($user, $pcosto, 'Ajuste de costo a través del consumible genérico');
+        }
+
 
         if ($productA->es_kit && count($productA->product_components) == 1) {
             $productHijo = $productA->product_components->first()->product_hijo;
@@ -259,8 +274,16 @@ class Product extends Model
     public function incrementInventario($cantidad, $almacenId)
     {
         $product = $this;
+        if ($product->consumible == 'generico') {
+            return;
+        }
+
         if ($product->es_kit) {
             foreach ($product->product_components as $componente) {
+                if ($componente->product_hijo->consumible == 'generico') {
+                    continue;
+                }
+
                 $inventario = $componente->product_hijo->getInventario($almacenId);
                 $inventario->increment('cantidad_actual', ($cantidad * $componente->cantidad));
             }
@@ -269,6 +292,16 @@ class Product extends Model
         $inventario = $product->getInventario($almacenId);
         $inventario->increment('cantidad_actual', $cantidad);
     }
+    public function incrementInventarioConsumibleGenerico($cantidad, $almacenId)
+    {
+        $product = $this;
+        if (!$product->consumible == 'generico') {
+            return;
+        }
+        $inventario = $product->getInventario($almacenId);
+        $inventario->increment('cantidad_actual', $cantidad);
+    }
+
     public function getPrecioSugerido($almacenId)
     {
         $ganancia = $this->getGananciaAmount($almacenId);

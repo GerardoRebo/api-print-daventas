@@ -18,14 +18,14 @@ class DepartamentoController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        return Departamento::where('organization_id', $user->organization_id)->get();
+        return Departamento::where('organization_id', $user->active_organization_id)->get();
     }
     public function search(Request $request)
     {
         $user = $request->user();
         return Cliente::where('name', 'like', '%' . $request->keyword . '%')
 
-            ->where('organization_id', $user->organization_id)
+            ->where('organization_id', $user->active_organization_id)
             ->orderBy('name', 'asc')->get();
     }
 
@@ -40,7 +40,7 @@ class DepartamentoController extends Controller
         $this->validateAfter($request);
         $user = $request->user();
         $newDepartamento = new Departamento;
-        $newDepartamento->organization_id = $user->organization_id;
+        $newDepartamento->organization_id = $user->active_organization_id;
         $newDepartamento->name = $request->name;
         $newDepartamento->porcentaje = $request->porcentaje;
         $newDepartamento->activo = $request->activo;

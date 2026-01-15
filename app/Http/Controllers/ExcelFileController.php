@@ -20,7 +20,7 @@ class ExcelFileController extends Controller
         ]);
 
         $user = auth()->user();
-        $orgId = $user->organization_id;
+        $orgId = $user->active_organization_id;
         $almacen = $request->input('almacen');
         $file = $request->file('file');
         $almacens = $user->almacens;
@@ -50,7 +50,7 @@ class ExcelFileController extends Controller
 
         $user = auth()->user();
 
-        $filesCount = ExcelFile::where('organization_id', $user->organization_id)->where('estado', 'Terminado')->count();
+        $filesCount = ExcelFile::where('organization_id', $user->active_organization_id)->where('estado', 'Terminado')->count();
         if ($filesCount > 2) return "TooMany";
 
         $almacens = $user->almacens;
@@ -67,12 +67,12 @@ class ExcelFileController extends Controller
         }
         if ($hasta == "z") {
             $count = $basicQuery
-                ->where('organization_id', $user->organization_id)
+                ->where('organization_id', $user->active_organization_id)
                 ->where('name', '>=', $desde)->count();
         } else {
             ++$hasta;
             $count = $basicQuery
-                ->where('organization_id', $user->organization_id)
+                ->where('organization_id', $user->active_organization_id)
                 ->whereBetween('name', [$desde, $hasta])->count();
         }
 
@@ -106,15 +106,15 @@ class ExcelFileController extends Controller
     public function fetchFiles()
     {
         $user = auth()->user();
-        return ExcelFile::where('organization_id', $user->organization_id)
+        return ExcelFile::where('organization_id', $user->active_organization_id)
             ->where('tipo', 'Cliente:Import')
             ->get();
     }
     public function getReport()
     {
         $user = auth()->user();
-        if (Storage::exists('excel/reports/' . $user->organization_id)) {
-            return Storage::get('excel/reports/' . $user->organization_id);
+        if (Storage::exists('excel/reports/' . $user->active_organization_id)) {
+            return Storage::get('excel/reports/' . $user->active_organization_id);
         }
         return "Aun no se genera ningun reporte";
     }

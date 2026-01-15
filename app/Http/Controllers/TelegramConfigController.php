@@ -32,7 +32,7 @@ class TelegramConfigController extends Controller
         $user = $request->user();
 
         // Verificar que el usuario tiene acceso a esta configuración
-        if ($telegramConfig->user_id !== $user->id && $telegramConfig->organization_id !== $user->organization_id) {
+        if ($telegramConfig->user_id !== $user->id && $telegramConfig->organization_id !== $user->active_organization_id) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
@@ -80,7 +80,7 @@ class TelegramConfigController extends Controller
         $user = $request->user();
 
         // Verificar que el usuario tiene acceso a esta configuración
-        if ($telegramConfig->user_id !== $user->id && $telegramConfig->organization_id !== $user->organization_id) {
+        if ($telegramConfig->user_id !== $user->id && $telegramConfig->organization_id !== $user->active_organization_id) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
@@ -116,7 +116,7 @@ class TelegramConfigController extends Controller
         $user = $request->user();
 
         // Verificar que el usuario tiene acceso a esta configuración
-        if ($telegramConfig->user_id !== $user->id && $telegramConfig->organization_id !== $user->organization_id) {
+        if ($telegramConfig->user_id !== $user->id && $telegramConfig->organization_id !== $user->active_organization_id) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
@@ -133,7 +133,7 @@ class TelegramConfigController extends Controller
         $user = $request->user();
 
         // Verificar que el usuario tiene acceso a esta configuración
-        if ($telegramConfig->user_id !== $user->id && $telegramConfig->organization_id !== $user->organization_id) {
+        if ($telegramConfig->user_id !== $user->id && $telegramConfig->organization_id !== $user->active_organization_id) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 

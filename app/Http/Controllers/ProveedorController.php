@@ -18,13 +18,13 @@ class ProveedorController extends Controller
     {
         $user = $request->user();
 
-        return Proveedor::where('organization_id', $user->organization_id)->orderBy('name', 'asc')->get();;
+        return Proveedor::where('organization_id', $user->active_organization_id)->orderBy('name', 'asc')->get();;
     }
     public function search(Request $request)
     {
         $user = $request->user();
         return Proveedor::where('name', 'like', '%' . $request->keyword . '%')
-            ->where('organization_id', $user->organization_id)
+            ->where('organization_id', $user->active_organization_id)
             ->orderBy('name', 'asc')->get();
     }
 
@@ -42,7 +42,7 @@ class ProveedorController extends Controller
 
         $newProveedor->name = $request->name;
 
-        $newProveedor->organization_id = $user->organization_id;
+        $newProveedor->organization_id = $user->active_organization_id;
         $newProveedor->telefono = $request->telefono;
         $newProveedor->notas = $request->notas;
         $newProveedor->direccion = $request->direccion;

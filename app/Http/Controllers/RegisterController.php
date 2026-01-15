@@ -29,7 +29,7 @@ class RegisterController extends Controller
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
-        $user->organization_id = $newOrganization->id;
+        $user->active_organization_id = $newOrganization->id;
         $user->assignRole('Owner');
         $user->save();
 

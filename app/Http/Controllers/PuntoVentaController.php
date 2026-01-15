@@ -351,7 +351,7 @@ class PuntoVentaController extends Controller
     public function pendientes(Request $request)
     {
         $user = $request->user();
-        $pendientes = Ventaticket::with('ventaticket_articulos')->where('organization_id', $user->organization_id)
+        $pendientes = Ventaticket::with('ventaticket_articulos')->where('organization_id', $user->active_organization_id)
             ->where('esta_abierto', 1)->where('pendiente', 1)
             ->where('user_id', $user->id)
             ->get();
@@ -410,7 +410,7 @@ class PuntoVentaController extends Controller
         // ---------------------------
         $query = Ventaticket::query()
             ->where('esta_abierto', 0)
-            ->where('organization_id', $user->organization_id)
+            ->where('organization_id', $user->active_organization_id)
             ->where('user_id', $user_id);
         // ->whereBetween('pagado_en', [$dfecha, $hfecha]);
 
@@ -469,7 +469,7 @@ class PuntoVentaController extends Controller
         $user = $request->user();
         $turno = $user->getLatestTurno();
         $misventas = Ventaticket::where('esta_abierto', 0)
-            ->where('organization_id', $user->organization_id)
+            ->where('organization_id', $user->active_organization_id)
             ->where('user_id', $user->id)
             ->where('turno_id', $turno->id)
             ->sum('total');

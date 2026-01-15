@@ -12,7 +12,7 @@ class ConceptoController extends Controller
     {
 
         $user = $request->user();
-        return Concepto::where('organization_id', $user->organization_id)->get();
+        return Concepto::where('organization_id', $user->active_organization_id)->get();
     }
     /**
      * Store a newly created resource in storage.
@@ -27,7 +27,7 @@ class ConceptoController extends Controller
         $newConcepto = new Concepto;
         $newConcepto->name = $request->name;
         $newConcepto->tipo = $request->tipo;
-        $newConcepto->organization_id = $user->organization_id;
+        $newConcepto->organization_id = $user->active_organization_id;
         $newConcepto->save();
         return $newConcepto;
     }

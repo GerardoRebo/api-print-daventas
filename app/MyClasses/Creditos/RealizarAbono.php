@@ -5,20 +5,20 @@ namespace App\MyClasses\Creditos;
 use App\Models\Abono;
 use App\Models\Deuda;
 
- class RealizarAbono  
+class RealizarAbono
 {
     public function realizarAbono($deuda, $user, $cantidad, $comments, $turno)
     {
         $deuda = Deuda::with('cliente')->find($deuda);
         $cliente = $deuda->cliente;
         if ($cantidad == null) {
-            $cantidad= $deuda->saldo;
+            $cantidad = $deuda->saldo;
         }
 
         $saldo = $deuda->saldo - $cantidad;
 
         $abono = Abono::create([
-            'organization_id' => $user->organization_id,
+            'organization_id' => $user->active_organization_id,
             'deuda_id' =>  $deuda->id,
             'turno_id' =>  $turno->id,
             'user_id' =>  $user->id,
@@ -38,4 +38,3 @@ use App\Models\Deuda;
         return $abono;
     }
 }
-

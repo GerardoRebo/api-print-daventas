@@ -41,16 +41,16 @@ class AlmacenService
     }
     public function putCache(User $user): void
     {
-        Cache::tags(['orgAlmacens:' . $user->organization_id])->put('userAlmacens:' . $user->id, $user->almacens);
+        Cache::tags(['orgAlmacens:' . $user->active_organization_id])->put('userAlmacens:' . $user->id, $user->almacens);
     }
     public function getMyAlmacens($user)
     {
-        $almacens = Cache::tags(['orgAlmacens:' . $user->organization_id])->get('userAlmacens:' . $user->id);
+        $almacens = Cache::tags(['orgAlmacens:' . $user->active_organization_id])->get('userAlmacens:' . $user->id);
         if ($almacens) {
             return $almacens;
         };
         $almacens = $user->almacens;
-        Cache::tags(['orgAlmacens:' . $user->organization_id])->put('userAlmacens:' . $user->id, $almacens);
+        Cache::tags(['orgAlmacens:' . $user->active_organization_id])->put('userAlmacens:' . $user->id, $almacens);
         return $almacens;
     }
 }

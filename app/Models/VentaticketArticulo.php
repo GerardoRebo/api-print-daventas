@@ -315,7 +315,7 @@ class VentaticketArticulo extends Model
         }
         InventHistorial::create([
             'user_id' => $user->id,
-            'organization_id' => $user->organization_id,
+            'organization_id' => $user->active_organization_id,
             'product_id' => $this->product_id,
             'almacen_id' => $almacenId,
             'cantidad' => $cantidad,

@@ -241,7 +241,7 @@ class TicketVenta
             }
             array_push($articulosHistory, [
                 'user_id' => $user->id,
-                'organization_id' => $user->organization_id,
+                'organization_id' => $user->active_organization_id,
                 'product_id' => $articulo->product_id,
                 'almacen_id' => $almacenId,
                 'cantidad' => $cantidad,

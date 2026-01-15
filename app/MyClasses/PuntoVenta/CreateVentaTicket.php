@@ -12,7 +12,7 @@ class CreateVentaTicket
     public function realizarConexion($user)
     {
         try {
-            return  Redis::incr('venta' . $user->organization_id);
+            return  Redis::incr('venta' . $user->active_organization_id);
         } catch (Exception $e) {
             return  0;
         }
@@ -22,7 +22,7 @@ class CreateVentaTicket
         $cuenta = $this->realizarConexion($user);
 
         $ventaticket = Ventaticket::create([
-            'organization_id' => $user->organization_id,
+            'organization_id' => $user->active_organization_id,
             'user_id' => $user->id,
             'consecutivo' => $cuenta,
             'turno_id' => null,

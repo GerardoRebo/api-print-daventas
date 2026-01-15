@@ -215,7 +215,7 @@ class CotizacionController extends Controller
     {
         $user = $request->user();
         $base = Cotizacion::with('articulos')
-            ->where('organization_id', $user->organization_id)
+            ->where('organization_id', $user->active_organization_id)
             ->where('esta_abierto', 1)
             ->where('pendiente', 1)
             ->where('archivado', 0);
@@ -244,7 +244,7 @@ class CotizacionController extends Controller
         $hfecha = request('hfecha', getMysqlDate($user->configuration?->time_zone));
 
         $misventas = Cotizacion::where('esta_abierto', 0)
-            ->where('organization_id', $user->organization_id)
+            ->where('organization_id', $user->active_organization_id)
             ->where('user_id', $user->id)
             ->whereDate('created_at', '>=', $dfecha)
             ->whereDate('created_at', '<=', $hfecha)

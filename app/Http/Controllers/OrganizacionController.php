@@ -148,7 +148,7 @@ class OrganizacionController extends Controller
         $fileName = $file->getClientOriginalName();
         $path = $file->store('certificados');
 
-        $organization = Organization::findOrFail($user->organization_id);
+        $organization = Organization::findOrFail($user->active_organization_id);
         if ($organization?->facturacion_info?->cer_path) {
             Storage::delete($organization->facturacion_info->cer_path);
         }
@@ -166,7 +166,7 @@ class OrganizacionController extends Controller
         $fileName = $file->getClientOriginalName();
         $path = $file->store('certificados');
 
-        $organization = Organization::findOrFail($user->organization_id);
+        $organization = Organization::findOrFail($user->active_organization_id);
 
         if ($organization?->facturacion_info?->key_path) {
             Storage::delete($organization->facturacion_info->key_path);
@@ -242,7 +242,7 @@ class OrganizacionController extends Controller
     public function misusers(Request $request)
     {
         $user = $request->user();
-        $users = User::where('organization_id', $user->organization_id)->get();
+        $users = User::where('organization_id', $user->active_organization_id)->get();
         return $users;
     }
     public function misalmacens()
@@ -347,7 +347,7 @@ class OrganizacionController extends Controller
             'user_id' => $user->id,
             'organization_id' => $organization->id
         ]);
-        $user->organization_id = $organization->id;
+        $user->active_organization_id = $organization->id;
         $user->assignRole('Owner');
         $user->save();
         return $user;
@@ -355,7 +355,7 @@ class OrganizacionController extends Controller
     public function setuserorganization($user, $organization)
     {
         $user = User::find($user);
-        $user->organization_id = $organization;
+        $user->active_organization_id = $organization;
         $user->syncRoles(['Cajero']);
         $user->save();
         return $user;
@@ -368,8 +368,8 @@ class OrganizacionController extends Controller
         if (!$authUser->hasAnyRole('Owner', 'Admin')) return;
         $orgId = $authUser->organization_id;
         $user = User::find($user);
-        if ($user->organization_id != $orgId) return;
-        $user->organization_id = null;
+        if ($user->active_organization_id != $orgId) return;
+        $user->active_organization_id = null;
         $user->syncRoles([]);
         $user->save();
         return;
@@ -384,7 +384,7 @@ class OrganizacionController extends Controller
         if ($user->hasAnyRole('Owner')) {
             throw new OperationalException("No es posible desactivar al dueño de la organizacion", 1);
         }
-        if ($user->organization_id != $orgId) return;
+        if ($user->active_organization_id != $orgId) return;
         $organization = $authUser->organization;
         $organizationPlan = $organization->latestOrganizationPlan;
         if ($organizationPlan) {
@@ -459,13 +459,13 @@ class OrganizacionController extends Controller
     public function getmyorganization(Request $request)
     {
         $user = $request->user();
-        return Organization::with('facturacion_info', 'image')->find($user->organization_id);
+        return Organization::with('facturacion_info', 'image')->find($user->active_organization_id);
     }
     public function getsolicitudes(Request $request)
     {
         $user = $request->user();
         return Invitation::with('user')
-            ->where('organization_id', $user->organization_id)
+            ->where('organization_id', $user->active_organization_id)
             ->where('respondida', 0)
             ->get();
     }
@@ -473,7 +473,7 @@ class OrganizacionController extends Controller
     {
         $user = $request->user();
         try {
-            $tabulares =  Redis::hgetall($user->organization_id . "tabular");
+            $tabulares =  Redis::hgetall($user->active_organization_id . "tabular");
         } catch (Exception $e) {
             return  $tabulares = null;
         }
@@ -490,7 +490,7 @@ class OrganizacionController extends Controller
         $index = request()->input('index');
         $value = request()->input('value');
         try {
-            Redis::hset($user->organization_id . "tabular", $index, $value);
+            Redis::hset($user->active_organization_id . "tabular", $index, $value);
         } catch (Exception $e) {
             return  "No se pudo conectar a la BD";
         }
@@ -502,7 +502,7 @@ class OrganizacionController extends Controller
 
         $index = request()->input('index');
         try {
-            Redis::hdel($user->organization_id . "tabular", $index);
+            Redis::hdel($user->active_organization_id . "tabular", $index);
         } catch (Exception $e) {
             return  "No se pudo conectar a la BD";
         }
@@ -528,7 +528,7 @@ class OrganizacionController extends Controller
         $organization = $ownerUser->organization_id;
         $user = User::where('email', $request->email)->first();
         if ($user) {
-            if ($user->organization_id) {
+            if ($user->active_organization_id) {
                 return "OtraOrg";
             }
             $invitation = Invitation::where('user_id', $user->id)
@@ -547,7 +547,7 @@ class OrganizacionController extends Controller
             $user->name = $request->email;
             $user->email = $request->email;
             $user->password = Hash::make($request->password);
-            $user->organization_id = $organization;
+            $user->active_organization_id = $organization;
             $user->assignRole('Cajero');
             $user->save();
 
@@ -568,7 +568,7 @@ class OrganizacionController extends Controller
     public function eliminaPrueba()
     {
         $user = User::where('email', 'justsadness@live.com.mx')->first();
-        $org = Organization::find($user->organization_id);
+        $org = Organization::find($user->active_organization_id);
         if ($user) {
             $user->delete();
         }

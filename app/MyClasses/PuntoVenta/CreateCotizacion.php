@@ -12,7 +12,7 @@ class CreateCotizacion
     public function realizarConexion($user)
     {
         try {
-            return  Redis::incr('cotizacion' . $user->organization_id);
+            return  Redis::incr('cotizacion' . $user->active_organization_id);
         } catch (Exception $e) {
             return  0;
         }
@@ -22,7 +22,7 @@ class CreateCotizacion
         $cuenta = $this->realizarConexion($user);
 
         $cotizacion = Cotizacion::create([
-            'organization_id' => $user->organization_id,
+            'organization_id' => $user->active_organization_id,
             'user_id' => $user->id,
             'consecutivo' => $cuenta,
             'esta_abierto' => 1,

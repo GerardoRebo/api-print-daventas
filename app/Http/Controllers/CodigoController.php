@@ -21,11 +21,11 @@ class CodigoController extends Controller
     }
     public function attach(Request $request)
     {
-        $user= auth()->user();
+        $user = auth()->user();
         Code::create([
             'product_id' => $request->productActualId,
             'code' => $request->codigo,
-            'organization_id' => $user->organization_id,
+            'organization_id' => $user->active_organization_id,
         ]);
         return;
     }

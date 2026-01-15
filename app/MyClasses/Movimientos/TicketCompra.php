@@ -18,7 +18,8 @@ class TicketCompra
     public function __construct(public $id = null)
     {
         $this->ticket = OrdenCompra::with([
-            'articulos_ocs.product.proveedors', 'articulos_ocs.orden_compra',
+            'articulos_ocs.product.proveedors',
+            'articulos_ocs.orden_compra',
             'articulos_ocs.product.product_components'
         ])->find($id);
     }
@@ -309,7 +310,7 @@ class TicketCompra
             $cantidad = -$cantidadEnTicket;
         }
         $this->ticket->histories()->create([
-            'organization_id' => $user->organization_id,
+            'organization_id' => $user->active_organization_id,
             'product_id' => $compraArticulo->getProductId(),
             'user_id' => $user->id,
             'almacen_id' => $almacen,
@@ -341,7 +342,7 @@ class TicketCompra
                 $cantidad = -$cantidadEnTicket;
             }
             array_push($articulosHistory, [
-                'user_id' => $user->id,
+                'user_id' => $user->i$user->active_organization_id
                 'organization_id' => $user->organization_id,
                 'product_id' => $articulo->product_id,
                 'almacen_id' => $almacen,

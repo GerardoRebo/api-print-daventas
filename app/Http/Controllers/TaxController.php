@@ -20,7 +20,7 @@ class TaxController extends Controller
     {
         $user = $request->user();
 
-        $query = Tax::where('organization_id', $user->organization_id);
+        $query = Tax::where('organization_id', $user->active_organization_id);
 
         if ($request->has('type')) {
             $query->where('tipo', $request->type);
@@ -31,7 +31,7 @@ class TaxController extends Controller
     public function retained(Request $request)
     {
         $user = $request->user();
-        return Tax::where('organization_id', $user->organization_id)->where('tipo', 'retenido')->get();
+        return Tax::where('organization_id', $user->active_organization_id)->where('tipo', 'retenido')->get();
     }
     /**
      * Display a listing of the resource.

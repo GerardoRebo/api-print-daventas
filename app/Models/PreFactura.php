@@ -109,7 +109,7 @@ class PreFactura extends Model
             throw new OperationalException($result->output(), 1);
         }
         $idForPath = $this->ventaticket->id;
-        $xmlFacturaPath = "xml_factura/$user->organization_id/$idForPath";
+        $xmlFacturaPath = "xml_factura/$user->active_organization_id/$idForPath";
         if (app()->isProduction()) {
             try {
                 Storage::disk('local')->delete($facturaData['cer_path']);

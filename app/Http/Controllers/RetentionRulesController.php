@@ -16,7 +16,7 @@ class RetentionRulesController extends Controller
         }
         $user = request()->user();
         return RetentionRule::with('tax')
-            ->where('organization_id', $user->organization_id)
+            ->where('organization_id', $user->active_organization_id)
             ->get();
     }
     function store()
@@ -30,7 +30,7 @@ class RetentionRulesController extends Controller
             'iva_percentage' => "nullable|numeric",
         ]);
 
-        $validated['organization_id'] = $user->organization_id;
+        $validated['organization_id'] = $user->active_organization_id;
         RetentionRule::create($validated);
     }
     function update($id)

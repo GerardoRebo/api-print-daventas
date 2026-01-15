@@ -50,7 +50,7 @@ class DevolucionController extends Controller
         $user = $request->user();
         $dfecha = request('dfecha', getMysqlDate($user->configuration?->time_zone));
         $hfecha = request('hfecha', getMysqlDate($user->configuration?->time_zone));
-        $misDevoluciones = Devolucione::where('organization_id', $user->organization_id)
+        $misDevoluciones = Devolucione::where('organization_id', $user->active_organization_id)
             ->where('user_id', $user->id)
             ->whereDate('devuelto_en', '>=', $dfecha)
             ->whereDate('devuelto_en', '<=', $hfecha)

@@ -63,7 +63,7 @@ class TicketDevolucion
     {
         return $this->ticket = Devolucione::find($id);
     }
-    public function createInventarioHistorial( $tipo, $descripcion)
+    public function createInventarioHistorial($tipo, $descripcion)
     {
         $user = $this->ticket->user;
         $almacenId = $this->ticket->ventaticket->almacen_id;
@@ -83,7 +83,7 @@ class TicketDevolucion
             }
             array_push($articulosHistory, [
                 'user_id' => $user->id,
-                'organization_id' => $user->organization_id,
+                'organization_id' => $user->active_organization_id,
                 'product_id' => $articulo->product_id,
                 'almacen_id' => $almacenId,
                 'cantidad' => $cantidad,

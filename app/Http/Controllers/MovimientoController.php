@@ -240,7 +240,7 @@ class MovimientoController extends Controller
     {
         $user = $request->user();
         $almacens = $user->almacens->pluck('id');
-        $pendientes = OrdenCompra::where('organization_id', $user->organization_id)
+        $pendientes = OrdenCompra::where('organization_id', $user->active_organization_id)
             ->where('estado', 'B')->where('user_id', $user->id)->get();
         $masPendientes = OrdenCompra::whereIn('almacen_origen_id', $almacens)
             ->where('tipo', 'S')
@@ -271,7 +271,7 @@ class MovimientoController extends Controller
         $user = $request->user();
         $folio = request()->input('folio');
         return  OrdenCompra::where('user_id', $user->id)
-            ->where('organization_id', $user->organization_id)
+            ->where('organization_id', $user->active_organization_id)
             ->where('consecutivo', $folio)
             ->paginate();
     }
@@ -305,7 +305,7 @@ class MovimientoController extends Controller
             ->when($almacen, function ($query) use ($almacen) {
                 return $query->where('almacen_origen_id', $almacen);
             })
-            ->where('organization_id', $user->organization_id)
+            ->where('organization_id', $user->active_organization_id)
 
             // ->whereBetween('enviada_en', [$dfecha . ' 00:00:00', $hfecha . ' 23:59:59'])
             ->whereDate('enviada_en', '>=', $dfecha)

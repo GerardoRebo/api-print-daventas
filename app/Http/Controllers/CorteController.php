@@ -64,7 +64,7 @@ class CorteController extends Controller
         $items_per_page = request()->input('items_per_page');
 
 
-        $miscortesPaginados = Turno::where('organization_id', $user->organization_id)
+        $miscortesPaginados = Turno::where('organization_id', $user->active_organization_id)
             ->whereDate('inicio_en', '>=', $dfecha)
             ->whereDate('inicio_en', '<=', $hfecha)
             ->when($user_id, function ($query) use ($user_id) {
@@ -111,7 +111,7 @@ class CorteController extends Controller
         $dfecha = request('dfecha', getMysqlDate($user->configuration?->time_zone));
         $hfecha = request('hfecha', getMysqlDate($user->configuration?->time_zone));
 
-        $organizationId = $user->organization_id;
+        $organizationId = $user->active_organization_id;
 
         // Convert to Carbon
         $startDate = Carbon::parse($dfecha);
@@ -293,7 +293,7 @@ class CorteController extends Controller
             $concepto = $conceptoString->name;
         }
         $movimientocaja = MovimientoCaja::create([
-            'organization_id' => $user->organization_id,
+            'organization_id' => $user->active_organization_id,
             'user_id' => $user->id,
             'turno_id' => $turno->id,
             'tipo' => $tipo,
@@ -317,7 +317,7 @@ class CorteController extends Controller
     {
         $user = $request->user();
         $tipo = request()->input('params.tipo');
-        return  Concepto::where('organization_id', $user->organization_id)
+        return  Concepto::where('organization_id', $user->active_organization_id)
             ->where('tipo', $tipo)->get();
     }
 }
