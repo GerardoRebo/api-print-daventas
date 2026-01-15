@@ -52,7 +52,7 @@ class TelegramConfigController extends Controller
         ]);
 
         $user = $request->user();
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
 
         // Validar el token
         if (!$this->telegramService->validateToken($request->telegram_bot_token)) {

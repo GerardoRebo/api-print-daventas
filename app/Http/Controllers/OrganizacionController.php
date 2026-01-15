@@ -180,7 +180,7 @@ class OrganizacionController extends Controller
             'logo' => 'required|image|mimes:jpg,jpeg,png|max:2048',
         ]);
         $user = auth()->user();
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
 
 
         if ($organization?->image?->path) {
@@ -608,7 +608,7 @@ class OrganizacionController extends Controller
             'hasta' => 'required|date',
         ]);
         $user = auth()->user();
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
         $desde = $request->desde;
         $hasta = $request->hasta;
 
@@ -644,7 +644,7 @@ class OrganizacionController extends Controller
         $formaPago =  $request->forma_pago;
 
         $user = auth()->user();
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
 
         $saldo = $organization->getOverallTimbresCount();
         $saldoScalar = $saldo;
@@ -666,7 +666,7 @@ class OrganizacionController extends Controller
             'hasta' => 'required|date',
         ]);
         $user = auth()->user();
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
         $organization->validatePreFacturaGlobal($validated['ticketIds']);
         $pre_factura_global_id = $organization->createPreFacturaGlobal(
             $user->id,
@@ -687,7 +687,7 @@ class OrganizacionController extends Controller
             'hasta' => 'required|date',
         ]);
         $user = auth()->user();
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
         $desde = $validated['desde'];
         $hasta = $validated['hasta'];
         $desde = Carbon::parse($desde)->utc();
@@ -704,7 +704,7 @@ class OrganizacionController extends Controller
             'hasta' => 'required|date',
         ]);
         $user = auth()->user();
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
         $desde = $validated['desde'];
         $hasta = $validated['hasta'];
         return response()->json([
@@ -715,7 +715,7 @@ class OrganizacionController extends Controller
     function deleteFacturasGlobales(PreFacturaGlobal $factura)
     {
         $user = auth()->user();
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
 
         $factura->delete();
         return response()->json([
@@ -725,7 +725,7 @@ class OrganizacionController extends Controller
     function facturasGlobalesShow($facturaId)
     {
         $user = auth()->user();
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
         $factura = PreFacturaGlobal::with('articulos.ventaticket')->findOrFail($facturaId);
         $maxAmount = 0;
         $maxVentaticket = null;
@@ -760,7 +760,7 @@ class OrganizacionController extends Controller
     function facturasShow($facturaId)
     {
         $user = auth()->user();
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
         $factura = $organization->facturasShow($facturaId, $type);
 
         return response()->json([

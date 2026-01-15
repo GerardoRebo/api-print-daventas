@@ -79,7 +79,7 @@ class TaxController extends Controller
         $tasaCuota = $request->tasa_cuota;
 
         /** @var Organization $organization */
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
         return $organization->createTax($c_impuesto, $activo, $tasaCuota, $tipo);
     }
 
@@ -132,7 +132,7 @@ class TaxController extends Controller
         $tasaCuota = $request->tasa_cuota;
 
         $user = auth()->user();
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
 
         return $organization->updateTax($c_impuesto, $activo, $tasaCuota, $tipo, $impuesto);
     }

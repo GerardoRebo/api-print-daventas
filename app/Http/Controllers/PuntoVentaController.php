@@ -379,7 +379,7 @@ class PuntoVentaController extends Controller
         } else {
             $user_id = $user->id;
         }
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
 
         // ---------------------------
         // SANITIZACIÓN DE FECHAS
@@ -639,7 +639,7 @@ class PuntoVentaController extends Controller
     function acceptRetentionRules(Ventaticket $ventaticket)
     {
         $user = auth()->user();
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
         $ventaticket->retention = true;
         $ventaticket->save();
         $retentionRules = $organization->getClientRetentionRules($ventaticket->cliente->regimen_fiscal);
@@ -700,7 +700,7 @@ class PuntoVentaController extends Controller
     //         'hasta' => 'required|date',
     //     ]);
     //     $user = auth()->user();
-    //     $organization = $user->organization;
+    //     $organization = $user->getActiveOrganization();
     //     $desde = $request->desde;
     //     $hasta = $request->hasta;
 
@@ -725,7 +725,7 @@ class PuntoVentaController extends Controller
     //         'hasta' => 'required|date',
     //     ]);
     //     $user = auth()->user();
-    //     $organization = $user->organization;
+    //     $organization = $user->getActiveOrganization();
 
     //     // return $organization->getVentatickets($desde, $hasta);
     // }

@@ -20,7 +20,7 @@ class ProductionOrderController extends Controller
         $cliente_id = request()->get('cliente_id', null);
         $statuses = request()->get('statuses', []);
         $organizatinoId = $user->active_organization_id;
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
         $productionOrders = ProductionOrder::with(
             'ventaticket.almacen',
             'ventaticket.cliente',
