@@ -15,13 +15,13 @@ class ClienteController extends Controller
         $user = $request->user();
         $keycliente = request()->input('keycliente');
         $clientes = Cliente::where('name', 'like', '%' . $keycliente . '%')
-            ->where('organization_id', $user->organization_id)->get();
+            ->where('organization_id', $user->active_organization_id)->get();
         return $clientes;
     }
     public function allclients(Request $request)
     {
         $user = $request->user();
-        $clientes = Cliente::where('organization_id', $user->organization_id)->get();
+        $clientes = Cliente::where('organization_id', $user->active_organization_id)->get();
         return $clientes;
     }
     public function setcliente()
@@ -39,7 +39,7 @@ class ClienteController extends Controller
         if (!$cliente->regimen_fiscal) return;
         // if ($ventaticket->ventaticket_articulos->count()) return;
 
-        $organization = $user->organization;
+        $organization = $user->getActiveOrganization();
         return response()->json([
             'success' => true,
             'retentionRules' => $organization->getClientRetentionRulesString($cliente->regimen_fiscal)
@@ -49,7 +49,7 @@ class ClienteController extends Controller
     {
         $user = $request->user();
         return Cliente::where('name', 'like', '%' . $request->keyword . '%')
-            ->where('organization_id', $user->organization_id)
+            ->where('organization_id', $user->active_organization_id)
             ->orderBy('name', 'asc')->get();
     }
 
@@ -58,7 +58,7 @@ class ClienteController extends Controller
         $this->validateAfter($request);
         $user = $request->user();
         $cliente = Cliente::create($request->all());
-        $cliente->organization_id = $user->organization_id;
+        $cliente->organization_id = $user->active_organization_id;
         $cliente->save();
     }
     public function update(Request $request, Cliente $cliente)
@@ -91,7 +91,7 @@ class ClienteController extends Controller
         $validator->validate();
         $name = $validator->validated()['name'];
         $validator->after(function ($validator) use ($name, $value) {
-            $orgId = auth()->user()->organization_id;
+            $orgId = auth()->user()->active_organization_id;
             $cliente = Cliente::where('name', $name)->where('organization_id', $orgId)->select('id')->first()?->id;
             if ($value) {
                 if ($cliente && $cliente != $value) {

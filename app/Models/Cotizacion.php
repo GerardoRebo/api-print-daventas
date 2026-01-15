@@ -26,11 +26,6 @@ class Cotizacion extends Model
     {
         return $this->belongsTo(Ventaticket::class);
     }
-    public function organization()
-    {
-
-        return $this->belongsTo(Organization::class);
-    }
 
     public function almacen()
     {
@@ -72,9 +67,6 @@ class Cotizacion extends Model
                 'products.*',
                 'inventario_balances.cantidad_actual',
                 'cotizacion_articulos.cantidad',
-                'cotizacion_articulos.ancho',
-                'cotizacion_articulos.alto',
-                'cotizacion_articulos.area',
                 'cotizacion_articulos.id',
                 'cotizacion_articulos.impuesto_traslado',
                 'cotizacion_articulos.impuesto_retenido',
@@ -110,7 +102,20 @@ class Cotizacion extends Model
     function registerArticulo(ProductArticuloCotizacion $product)
     {
         $yaExisteArticulo = $this->yaExisteArticuloEnTicket($product->id);
-        $articulo = $this->createArticulo($product);
+
+        $por_descuento = null;
+
+        if ($yaExisteArticulo) {
+            $articulo = $this->getArticuloByProductId($product->id);
+
+            $articulo->precio = $product->precio;
+            //calculate base impositiva
+            $articulo->cantidad += $product->cantidad;
+            // weird take a look
+            // $product->cantidad = $articulo->cantidad;
+        } else {
+            $articulo = $this->createArticulo($product);
+        }
 
         //calculate base impositiva
         $articulo->setPrecioBase();
@@ -137,9 +142,6 @@ class Cotizacion extends Model
         $articulo->product_id = $product->id;
         $articulo->product_name = $product->product->name;
         $articulo->cantidad = $product->cantidad;
-        $articulo->ancho = $product->ancho;
-        $articulo->alto = $product->alto;
-        $articulo->area = $product->ancho * $product->alto;
         $articulo->importe_descuento = 0;
         $articulo->precio = $product->precio;
         $articulo->importe = $product->precio * $product->cantidad;
@@ -179,18 +181,15 @@ class Cotizacion extends Model
     }
     public function getTotal()
     {
-        if ($this->total) {
-            return $this->total;
-        }
-        $subTotal = $this->getArticulos()->sum('precio_final');
-        $descuentos = $this->getArticulos()->sum('importe_descuento');
-        $impuestoTraslado = $this->getArticulos()->sum('impuesto_traslado');
-        $impuestoRetenido = $this->getArticulos()->sum('impuesto_retenido');
+        $subTotal = $this->articulos->sum('importe');
+        $descuentos = $this->articulos->sum('importe_descuento');
+        $impuestoTraslado = $this->articulos->sum('impuesto_traslado');
+        $impuestoRetenido = $this->articulos->sum('impuesto_retenido');
         return $this->total = $subTotal - $descuentos + $impuestoTraslado - $impuestoRetenido;
     }
     public function getSubTotal()
     {
-        return $subTotal = $this->articulos->sum('precio_final');
+        return $this->articulos->sum('importe');
     }
     public function getImpuestos($type = 'traslado')
     {

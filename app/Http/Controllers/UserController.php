@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserConfiguration;
 use DateInterval;
@@ -19,9 +20,10 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $user = $request->user()->load('configuration');
+        $organization = $user->getActiveOrganization();
         return [
             $user,
-            $user->getRoleNames()
+            [$user->getRoleInOrganization($organization->id)]
         ];
     }
     public function getAll(Request $request)
@@ -85,11 +87,33 @@ class UserController extends Controller
     {
         $rolName = request()->input('rolName');
         $user = request()->input('userId');
+        $organizationId = request()->input('organizationId');
+
         $user = User::find($user);
-        if ($user->hasRole('Owner')) return;
+
+        // Prevent assigning SuperAdmin or Owner roles globally
         if ($rolName === 'SuperAdmin') return;
-        if ($rolName === 'Owner') return;
-        $user->syncRoles($rolName);
+        if ($rolName === 'Owner' && !$organizationId) return;
+
+        // If organizationId is provided, use per-organization role assignment
+        if ($organizationId) {
+            // Verify user belongs to this organization
+            if (!$user->belongsToOrganization($organizationId)) {
+                return response()->json(['error' => 'User does not belong to this organization'], 403);
+            }
+
+            // Assign role in the specific organization
+            $user->assignRoleInOrganization($rolName, $organizationId);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Role '$rolName' assigned to user in organization $organizationId"
+            ]);
+        } else {
+            // Legacy: Global role assignment (backwards compatibility)
+            if ($user->hasRole('Owner')) return;
+            $user->syncRoles($rolName);
+        }
     }
     public function getCountNotf()
     {
@@ -170,5 +194,16 @@ class UserController extends Controller
             $user,
             $user->getRoleNames()
         ];
+    }
+    function distribuidorInfo()
+    {
+        $user = auth()->user();
+        $user->load("cuenta");
+        $user->referral_link = $user->referralLink;
+        $organizations = Organization::with("latestOrganizationPlan.plan", "latestVentaPlan")->where("ref_type", "dav")
+            ->where("referrer_id", $user->id)
+            ->select("name", "activa", "id")->get();
+        $user->organizations = $organizations;
+        return $user;
     }
 }

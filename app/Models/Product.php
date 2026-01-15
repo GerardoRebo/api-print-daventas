@@ -19,6 +19,8 @@ class Product extends Model
     protected $guarded = [];
     protected $with = ['taxes', 'descuentos'];
 
+
+
     //RELACIÓN UNO A MUCHOS
     public function codes()
     {
@@ -27,10 +29,6 @@ class Product extends Model
     public function product_components()
     {
         return $this->hasMany('App\Models\ProductComponent');
-    }
-    public function product_consumibles()
-    {
-        return $this->hasMany('App\Models\ProductConsumible');
     }
     public function inventario_balances()
     {
@@ -117,7 +115,6 @@ class Product extends Model
     {
         return $this->hasOne(ProductImage::class)->where('is_featured', true);
     }
-
     /**
      * The "booted" method of the model.
      */
@@ -206,10 +203,7 @@ class Product extends Model
         }
         $descuento * $cantidad;
     }
-    function getConsumiblePadre()
-    {
-        return ProductConsumible::where('consumible_id', $this->id)->first();
-    }
+    public static function getCantidadesArray() {}
     public function procesaAjusteCosto(User $user, $pcosto, $descripcion)
     {
         $productA = $this;
@@ -217,10 +211,6 @@ class Product extends Model
 
         $users = $user->getUsersInMyOrg();
         Notification::send($users, new AjusteMPrecio($user->name, $productA->name, $pcosto, 'Ajuste Manual de costo'));
-        $consumiblePadre = $this->getConsumiblePadre();
-        if ($consumiblePadre) {
-            $consumiblePadre->product->procesaAjusteCosto($user, $pcosto, 'Ajuste de costo a través del consumible genérico');
-        }
 
         if ($productA->es_kit && count($productA->product_components) == 1) {
             $productHijo = $productA->product_components->first()->product_hijo;
@@ -258,7 +248,7 @@ class Product extends Model
         $this->refresh();
         DB::table('costo_historials')->insert([
             'user_id' => $user->id,
-            'organization_id' => $user->organization_id,
+            'organization_id' => $user->active_organization_id,
             'product_id' => $this->id,
             'costo_anterior' => $this->ucosto ?? 0,
             'costo_despues' => $this->pcosto ?? 0,
@@ -268,28 +258,12 @@ class Product extends Model
     }
     public function incrementInventario($cantidad, $almacenId)
     {
-
         $product = $this;
-        if ($product->consumible == 'generico') {
-            return;
-        }
         if ($product->es_kit) {
             foreach ($product->product_components as $componente) {
-                if ($componente->product_hijo->consumible == 'generico') {
-                    continue;
-                }
                 $inventario = $componente->product_hijo->getInventario($almacenId);
                 $inventario->increment('cantidad_actual', ($cantidad * $componente->cantidad));
             }
-            return;
-        }
-        $inventario = $product->getInventario($almacenId);
-        $inventario->increment('cantidad_actual', $cantidad);
-    }
-    public function incrementInventarioConsumibleGenerico($cantidad, $almacenId)
-    {
-        $product = $this;
-        if (!$product->consumible == 'generico') {
             return;
         }
         $inventario = $product->getInventario($almacenId);
@@ -381,12 +355,8 @@ class Product extends Model
     }
     public function getCantidadActual($almacenId)
     {
-        $this->load('product_consumibles');
         if ($this->es_kit) {
             return $this->getCantidadActualKit($almacenId);
-        }
-        if ($this->consumible == 'generico') {
-            return $this->getCantidadActualConsumibleGenerico($almacenId);
         }
         return  InventarioBalance::where('product_id', $this->id)
             ->where('almacen_id', $almacenId)->value('cantidad_actual');
@@ -398,15 +368,6 @@ class Product extends Model
                     ->where('almacen_id', $almacenId)->value('cantidad_actual');
             }
         );
-    }
-    public function usesConsumable()
-    {
-        foreach ($this->product_components as $component) {
-            if ($component->product_hijo->product_consumibles->count()) {
-                return true;
-            }
-        }
-        return false;
     }
     public function getCantidadActualKit($almacen)
     {
@@ -422,25 +383,6 @@ class Product extends Model
         }
         if (count($cociente1)) {
             $cantidad = min($cociente1);
-        } else {
-            $cantidad = null;
-        }
-        return $cantidad;
-    }
-    public function getCantidadActualConsumibleGenerico($almacen)
-    {
-        $cociente1 = [];
-
-        foreach ($this->product_consumibles as $productConsumible) {
-            if ($this->id == $productConsumible->consumible->id) break;
-            $inventario = $productConsumible->consumible->getCantidadActual($almacen);
-            if (isset($inventario)) {
-                $cociente = $inventario;
-                array_push($cociente1, $cociente);
-            }
-        }
-        if (count($cociente1)) {
-            $cantidad = array_sum($cociente1);
         } else {
             $cantidad = null;
         }

@@ -89,30 +89,33 @@ class Almacen extends Model
 
             DB::table('invent_historials')->insert([
                 'user_id' => $user->id,
-                'organization_id' => $user->organization_id,
+                'organization_id' => $user->active_organization_id,
                 'product_id' => $product->id,
                 'almacen_id' => $this->id,
-                'cantidad' => $deltaCantidad,
-                'cantidad_anterior' => $cantidadActual ?? 0,
+                'cantidad' => -1 * $deltaCantidad,
+                'cantidad_anterior' =>  $cantidadActual ?? 0,
                 'cantidad_despues' => $cantidadNueva ?? 0,
                 'descripcion' => 'AjusteManualInventario',
                 'created_at' => getMysqlTimestamp($user->configuration?->time_zone)
             ]);
         }
     }
-    function processCambioPrecio($user, Product $product, $precioNuevo, $notify = false)
+    function processCambioPrecio($user, Product $product, $precioNuevo, $precio_medio_mayoreo, $precio_mayoreo, $notify = false)
     {
         $precio = $product->getPrecioModel($this->id);
         $precioAnterior = $precio->precio;
-        if ($precioAnterior == $precioNuevo) return;
+        // if ($precioAnterior == $precioNuevo) return;
 
+        $precio->precio = $precioNuevo;
+        $precio->precio_medio_mayoreo = $precio_medio_mayoreo;
+        $precio->precio_mayoreo = $precio_mayoreo;
         $precio->precio = $precioNuevo;
         $precio->save();
 
         DB::table('precio_historials')->insert(
             [
                 'user_id' => $user->id,
-                'organization_id' => $user->organization_id,
+                'organization_id' => $user->active_organization_id,
                 'product_id' => $product->id,
                 'almacen_id' => $this->id,
                 'precio_anterior' => $precioAnterior ?? 0,
@@ -122,7 +125,7 @@ class Almacen extends Model
             ]
         );
         if (!$notify) return;
-        $users = $user->getUsersInMyOrg($user->organization_id);
+        $users = $user->getUsersInMyOrg($user->active_organization_id);
         Notification::send($users, new AjusteMPrecio(
             $user->name,
             $product->name,

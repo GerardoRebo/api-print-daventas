@@ -26,14 +26,51 @@ class Organization extends Model
     /* public function users(){
         return $this->belongsToMany('App\Models\User');
     } */
-    //RELACIÓN UNO A MUCHOS
+
+    /**
+     * Get all users assigned to this organization (many-to-many).
+     * Users can belong to multiple organizations.
+     */
+    public function assignedUsers()
+    {
+        return $this->belongsToMany(
+            'App\Models\User',
+            'user_organizations',
+            'organization_id',
+            'user_id'
+        )->withPivot('shard_id', 'shard_connection', 'assigned_by', 'assigned_at', 'active')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get all active user assignments for this organization.
+     */
+    public function activeUsers()
+    {
+        return $this->assignedUsers()->wherePivot('active', true);
+    }
+
+    /**
+     * Get the user organization pivot records for this org.
+     */
+    public function userOrganizations()
+    {
+        return $this->hasMany(UserOrganization::class, 'organization_id');
+    }
+
+    //RELACIÓN UNO A MUCHOS (kept for backwards compatibility, but data is now in user_organizations)
     public function invitations()
     {
         return $this->hasMany('App\Models\Invitation');
     }
     public function users()
     {
-        return $this->hasMany('App\Models\User');
+        // For backwards compatibility, alias to assignedUsers
+        return $this->assignedUsers();
+    }
+    public function clientes()
+    {
+        return $this->hasMany(Cliente::class);
     }
     public function almacens()
     {
@@ -42,10 +79,6 @@ class Organization extends Model
     public function facturas()
     {
         return $this->hasMany(PreFactura::class);
-    }
-    public function clientes()
-    {
-        return $this->hasMany(Cliente::class);
     }
     public function facturasGlobales()
     {
@@ -67,23 +100,7 @@ class Organization extends Model
     {
         return $this->hasMany(SystemFolio::class);
     }
-    public function telegramConfigs()
-    {
-        return $this->hasMany(TelegramConfig::class);
-    }
-    function get_active_users_count()
-    {
-        return $this->users()->where('activo', true)->count();
-    }
-    function get_active_almacens_count()
-    {
-        return $this->almacens()->where('is_active', true)->count();
-    }
     //RELACIÓN UNO A MUCHOS Inversa
-    public function plan()
-    {
-        return $this->belongsTo('App\Models\Plan');
-    }
     public function facturacion_info(): MorphOne
     {
         return $this->morphOne(FacturacionInfo::class, 'infoable');
@@ -104,6 +121,10 @@ class Organization extends Model
     {
         return $this->hasOne(OrganizationPlan::class)->latestOfMany();
     }
+    public function latestVentaPlan(): HasOne
+    {
+        return $this->hasOne(VentaPlan::class)->latestOfMany();
+    }
     /**
      * The "booted" method of the model.
      */
@@ -116,6 +137,14 @@ class Organization extends Model
         static::updating(function ($organization) {
             $organization->slug_name = $organization->generateUniqueSlug($organization->name, $organization->id);
         });
+    }
+    function get_active_users_count()
+    {
+        return $this->users()->where('activo', true)->count();
+    }
+    function get_active_almacens_count()
+    {
+        return $this->almacens()->where('is_active', true)->count();
     }
     function getClientRetentionRules($regimenFiscal)
     {
@@ -290,6 +319,7 @@ class Organization extends Model
             ->whereDate('ventatickets.pagado_en', '<=', $hasta)
             ->where('esta_cancelado', 0)
             ->where('total_devuelto', 0)
+            ->where('retention', false)
             ->whereNull('ventatickets.facturado_en')
             ->groupBy('ventatickets.id', 'consecutivo', 'pagado_en', 'ventatickets.total')  // Group by ventaticket's unique columns
             ->get();
@@ -345,6 +375,7 @@ class Organization extends Model
         $preFacturaGlobal->save();
         return $preFacturaGlobal->id;
     }
+
     function validatePreFacturaGlobal($ticketIds)
     {
         $chunkSize = 100;
@@ -355,79 +386,32 @@ class Organization extends Model
                 ->whereIn('id', $chunk)
                 ->chunkById(100, function ($ventatickets) use (&$errors) {
                     foreach ($ventatickets as $ticket) {
+                        if ($ticket->retention) {
+                            $errors[] = "El ticket de venta " . $ticket->consecutivo . " tiene impuestos retenidos, no se puede facturar globalmente";
+                        }
                         foreach ($ticket->ventaticket_articulos as $articulo) {
-                            if (!$articulo->product->taxes->count()) {
-                                $errors[] = $articulo->product->name . ' (' . $articulo->product->codigo . ') ';
+                            if ($articulo->product->ObjetoImp === null) {
+                                $errors[] = "Objeto de impuesto no seleccionado para el producto: " . $articulo->product->name;
+                            }
+                            if ($articulo->product->ObjetoImp == "01") {
+                                continue;
+                            }
+                            if (!$articulo->product->taxes->count() && $articulo->product->ObjetoImp == "02") {
+                                $errors[] = "Impuestos no configurados en el producto: " . $articulo->product->name;
+                            }
+                            if (!$articulo->product->c_ClaveUnidad) {
+                                $errors[] = "Clave unidad no configurada en el producto: " . $articulo->product->name;
+                            }
+                            if (!$articulo->product->c_claveProdServ) {
+                                $errors[] = "Clave Producto Servicio no configurada en el product" . $articulo->product->name;
                             }
                         };
                     }
                 });
         }
         if (count($errors)) {
-            throw new OperationalException("Impuestos no configurados en los siguientes productos: " . implode(", ",  $errors), 1);
+            throw new OperationalException(implode(", ",  $errors), 1);
         }
-    }
-    private function getGroupedImpuestos($taxes)
-    {
-        $grouped = [];
-
-        foreach ($taxes as $impuesto) {
-            $tipo = $impuesto['tipo'];
-            $tipo_factor = $impuesto['tipo_factor'];
-            $c_impuesto = $impuesto['c_impuesto'];
-            $tasa_o_cuota = $impuesto['tasa_o_cuota'];
-
-            if (!isset($grouped[$tipo])) {
-                $grouped[$tipo] = [];
-            }
-
-            if (!isset($grouped[$tipo][$tipo_factor])) {
-                $grouped[$tipo][$tipo_factor] = [];
-            }
-
-            if (!isset($grouped[$tipo][$tipo_factor][$c_impuesto])) {
-                $grouped[$tipo][$tipo_factor][$c_impuesto] = [];
-            }
-
-            if (!isset($grouped[$tipo][$tipo_factor][$c_impuesto][$tasa_o_cuota])) {
-                $grouped[$tipo][$tipo_factor][$c_impuesto][$tasa_o_cuota] = [];
-            }
-
-            $grouped[$tipo][$tipo_factor][$c_impuesto][$tasa_o_cuota][] = $impuesto;
-        }
-
-        return $grouped;
-    }
-    function getImpuestosArray($taxes)
-    {
-        $impuestosTrasladados = [];
-        $impuestos = $this->getGroupedImpuestos($taxes);
-        foreach ($impuestos as $tipoK => $tipo) {
-            foreach ($tipo as $tipo_factorK => $tipo_factor) {
-                foreach ($tipo_factor as $c_impuestoK => $c_impuesto) {
-                    foreach ($c_impuesto as $tasa_o_cuotaK => $items) {
-                        $importe = 0;
-                        $base = 0;
-                        foreach ($items as $item) {
-                            $base += (float)$item['base'];
-                            $importe += (float)$item['importe'];
-                        }
-
-                        $impuestosTrasladados[] = [
-                            'c_impuesto' => $c_impuestoK,
-                            'tipo_factor' => $tipo_factorK,
-                            'tasa_o_cuota' => $tasa_o_cuotaK,
-                            'tipo' => $tipoK,
-                            'importe' => $importe,
-                            'base' => $base,
-                        ];
-                    }
-                }
-            }
-        }
-        return [
-            "traslados" => $impuestosTrasladados,
-        ];
     }
 
     private function facturaValidations($clavePrivadaLocal)
@@ -450,87 +434,6 @@ class Organization extends Model
     {
         return Ventaticket::whereIn($ticketsIds)->get();
     }
-    function resetDefaultAssets()
-    {
-        // Desactiva todos los almacenes excepto el primero
-        $firstAlmacenId = $this->almacens()->orderBy('id')->value('id');
-
-        $this->almacens()
-            ->where('id', '!=', $firstAlmacenId)
-            ->update(['is_active' => false]);
-
-        // Desactiva todos los usuarios excepto el primero
-        $firstUserId = $this->users()->orderBy('id')->value('id');
-
-        $this->users()
-            ->where('id', '!=', $firstUserId)
-            ->update(['activo' => false]);
-    }
-    function assignPlan(PlanPrice $planPrice)
-    {
-        $lastOrganizationPlan = $this->organization_plans()->where('is_active', true)->first();
-
-        if ($lastOrganizationPlan && $lastOrganizationPlan->plan->id != $planPrice->plan->id) {
-            $baseDate = now();
-        } else if ($lastOrganizationPlan) {
-            // Calculamos nuevo vencimiento
-            $baseDate = $lastOrganizationPlan  && $lastOrganizationPlan->ends_at && $lastOrganizationPlan->ends_at->isFuture()
-                ? $lastOrganizationPlan->ends_at
-                : now();
-        }
-        $this->makeOldPlansInactive();
-        $this->organization_plans()->create([
-            'plan_id' => $planPrice->plan->id,
-            'started_at' => now(),
-            'ends_at' => $planPrice->meses
-                ? $baseDate->copy()->addMonths($planPrice->meses)
-                : null,
-            'is_active' => true,
-        ]);
-        $this->setSystemFolios($planPrice->plan->timbres_mensuales);
-    }
-    function assignDefaultPlan()
-    {
-        $freePlan = Plan::where('is_free', true)->where('is_default', true)->first();
-        if (!$freePlan) {
-            throw new OperationalException("Ha ocurrido un error con los planes, por favor contacta a soporte tecnico", 1);
-        }
-        $freePlanPrice = $freePlan->plan_prices()->whereNull('meses')->first();
-
-        if (!$freePlanPrice) {
-            throw new OperationalException("Plan gratis no encontrado", 1);
-        }
-
-        $this->makeOldPlansInactive();
-        $this->organization_plans()->create([
-            'plan_id' => $freePlanPrice->plan->id,
-            'started_at' => now(),
-            'ends_at' => null,
-            'is_active' => true,
-        ]);
-    }
-    function assignInitialPlan()
-    {
-        $freePlan = Plan::where('is_free', true)->where('is_default', false)->first();
-        if (!$freePlan) {
-            throw new OperationalException("Ha ocurrido un error con los planes, por favor contacta a soporte tecnico", 1);
-        }
-        $planPrice = $freePlan->plan_prices()->first();
-
-        if (!$planPrice) {
-            throw new OperationalException("Plan inicial no encontrado", 1);
-        }
-
-        $this->makeOldPlansInactive();
-        $endsDate = $planPrice->meses ? now()->addMonths($planPrice->meses) : null;
-        $this->organization_plans()->create([
-            'plan_id' => $planPrice->plan->id,
-            'started_at' => now(),
-            'ends_at' => $endsDate,
-            'is_active' => true,
-        ]);
-    }
-
 
     function createCotizacionFromOrder($cart)
     {
@@ -575,6 +478,90 @@ class Organization extends Model
         $newAlmacen->save();
         $almacenService = new AlmacenService;
         $almacenService->attachAlmacenToTeamMembers($user, $newAlmacen->id);
+    }
+    function assignPlan(PlanPrice $planPrice)
+    {
+        $lastOrganizationPlan = $this->organization_plans()->where('is_active', true)->first();
+
+        if ($lastOrganizationPlan && $lastOrganizationPlan->plan->id != $planPrice->plan->id) {
+            $baseDate = now();
+        } else if ($lastOrganizationPlan) {
+            // Calculamos nuevo vencimiento
+            $baseDate = $lastOrganizationPlan  && $lastOrganizationPlan->ends_at && $lastOrganizationPlan->ends_at->isFuture()
+                ? $lastOrganizationPlan->ends_at
+                : now();
+        }
+        $this->makeOldPlansInactive();
+        $this->organization_plans()->create([
+            'plan_id' => $planPrice->plan->id,
+            'started_at' => now(),
+            'ends_at' => $planPrice->meses
+                ? $baseDate->copy()->addMonths($planPrice->meses)
+                : null,
+            'is_active' => true,
+        ]);
+        $this->setSystemFolios($planPrice->plan->timbres_mensuales);
+    }
+    function makeOldPlansInactive()
+    {
+        $this->organization_plans()->update(['is_active' => false]);
+    }
+    function resetDefaultAssets()
+    {
+        // Desactiva todos los almacenes excepto el primero
+        $firstAlmacenId = $this->almacens()->orderBy('id')->value('id');
+
+        $this->almacens()
+            ->where('id', '!=', $firstAlmacenId)
+            ->update(['is_active' => false]);
+
+        // Desactiva todos los usuarios excepto el primero
+        $firstUserId = $this->users()->orderBy('id')->value('id');
+
+        $this->users()
+            ->where('id', '!=', $firstUserId)
+            ->update(['activo' => false]);
+    }
+    function assignDefaultPlan()
+    {
+        $freePlan = Plan::where('is_free', true)->where('is_default', true)->first();
+        if (!$freePlan) {
+            throw new OperationalException("Ha ocurrido un error con los planes, por favor contacta a soporte tecnico", 1);
+        }
+        $freePlanPrice = $freePlan->plan_prices()->whereNull('meses')->first();
+
+        if (!$freePlanPrice) {
+            throw new OperationalException("Plan gratis no encontrado", 1);
+        }
+
+        $this->makeOldPlansInactive();
+        $this->organization_plans()->create([
+            'plan_id' => $freePlanPrice->plan->id,
+            'started_at' => now(),
+            'ends_at' => null,
+            'is_active' => true,
+        ]);
+    }
+    function assignInitialPlan()
+    {
+        $freePlan = Plan::where('is_free', true)->where('is_default', false)->first();
+        if (!$freePlan) {
+            throw new OperationalException("Ha ocurrido un error con los planes, por favor contacta a soporte tecnico", 1);
+        }
+        $planPrice = $freePlan->plan_prices()->first();
+
+        if (!$planPrice) {
+            throw new OperationalException("Plan inicial no encontrado", 1);
+        }
+
+        $this->makeOldPlansInactive();
+        $endsDate = $planPrice->meses ? now()->addMonths($planPrice->meses) : null;
+        $this->organization_plans()->create([
+            'plan_id' => $planPrice->plan->id,
+            'started_at' => now(),
+            'ends_at' => $endsDate,
+            'is_active' => true,
+        ]);
     }
     function setSystemFolios($quantityFolios)
     {

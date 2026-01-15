@@ -25,7 +25,7 @@ class AlmacenController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        return Almacen::where('organization_id', $user->organization_id)->get();
+        return Almacen::where('organization_id', $user->active_organization_id)->get();
     }
     public function myalmacens(Request $request)
     {
@@ -38,7 +38,8 @@ class AlmacenController extends Controller
         //$user = $request->user();
         $user = $request->userId;
         $user = User::find($user);
-        return $user->almacens;
+        $orgId = $request->input('organization_id') ?? auth()->user()->active_organization_id;
+        return $user->getAlmacenesByOrganization($orgId);
     }
     public function attachalmacen(Request $request, AlmacenService $almacenService)
     {
@@ -52,7 +53,9 @@ class AlmacenController extends Controller
     {
         $user = $request->user();
         $userEnviado = $request->input('params.userId');
-        $usuarios = User::where('organization_id', $user->organization_id)->get();
+        $usuarios = User::whereHas('organizations', function ($query) use ($user) {
+            $query->where('organization_id', $user->active_organization_id);
+        })->get();
         $almacenId = request()->input('params.almacenId');
 
         if (!$usuarios->contains('id', $userEnviado)) return;
@@ -60,13 +63,13 @@ class AlmacenController extends Controller
 
         $user->almacens()->detach([$almacenId]);
         $user->refresh();
-        Cache::tags(['orgAlmacens:' . $user->organization_id])->put('userAlmacens:' . $user->id, $user->almacens);
+        Cache::tags(['orgAlmacens:' . $user->active_organization_id])->put('userAlmacens:' . $user->id, $user->getAlmacenesByOrganization());
     }
     public function search(Request $request)
     {
         $user = $request->user();
         return Almacen::where('name', 'like', '%' . $request->keyword . '%')
-            ->where('organization_id', $user->organization_id)
+            ->where('organization_id', $user->active_organization_id)
             ->orderBy('name', 'asc')->get();
     }
 
@@ -80,7 +83,7 @@ class AlmacenController extends Controller
     {
         /** @var User $user */
         $user = auth()->user();
-        $orgId = $user->organization_id;
+        $orgId = $user->active_organization_id;
         $organization = Organization::with('almacens')->find($orgId);
         $almacens = $organization->almacens->pluck('id')->toArray();
         $validator = Validator::make($request->all(), [
@@ -146,8 +149,8 @@ class AlmacenController extends Controller
                 }
                 DB::table('inventario_balances')->insert($balancesData);
             });
-        }else{
-            Product::where('organization_id', $user->organization_id)->chunk(1000, function ($products) use ($newAlmacen) {
+        } else {
+            Product::where('organization_id', $user->active_organization_id)->chunk(1000, function ($products) use ($newAlmacen) {
                 $balancesData = [];
                 foreach ($products as $product) {
                     $balancesData[] = [
@@ -188,7 +191,7 @@ class AlmacenController extends Controller
      */
     public function update(Request $request, Almacen $almacen)
     {
-        $orgId = auth()->user()->organization_id;
+        $orgId = auth()->user()->active_organization_id;
         $validator = Validator::make($request->all(), [
             'name' => "required|string|max:70",
         ]);
@@ -218,7 +221,7 @@ class AlmacenController extends Controller
     public function destroy(Almacen $almacen)
     {
         $user = auth()->user();
-        Cache::tags('orgAlmacens:' . $user->organization_id)->flush();
+        Cache::tags('orgAlmacens:' . $user->active_organization_id)->flush();
         Almacen::destroy($almacen->id);
         DB::table('almacen_user')->where('almacen_id', $almacen->id)->delete();
     }

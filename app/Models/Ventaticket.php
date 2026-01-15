@@ -6,31 +6,39 @@ use App\Exceptions\OperationalException;
 use App\MyClasses\Factura\ComprobanteImpuestos;
 use App\MyClasses\Factura\FacturaService;
 use App\MyClasses\PuntoVenta\ProductArticuloVenta;
+use App\MyClasses\TiendaHttp;
 use App\Services\Cfdi\CfdiUtilsBuilder;
 use App\Services\Cfdi\PreFacturaArticuloForGlobal;
 use CfdiUtils\CfdiCreator40;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class Ventaticket extends Model
 {
     use HasFactory;
     protected $guarded = [];
-    protected $with = ['almacen', 'cliente', 'user', 'public_ticket_link'];
-    protected $appends = ['public_url'];
+    protected $with = ['almacen', 'cliente', 'user'];
 
+    /*
+    subtotal,
+    total, 
+    ganancia,
+    total_devuelto,
+    total_credito,
+    fp_efectivo,
+    fp_tarjeta_debito,
+    fp_tarjeta_credito,
+    fp_transferencia,
+    fp_cheque,
+    fp_vales_de_despensa,
+    */
 
     //uno a uno
     public function devolucione()
     {
         return $this->hasOne('App\Models\Devolucione');
-    }
-    public function public_ticket_link()
-    {
-        return $this->hasOne(PublicTicketLink::class);
     }
     public function deuda()
     {
@@ -48,6 +56,10 @@ class Ventaticket extends Model
     public function ventaticket_articulos()
     {
         return $this->hasMany('App\Models\VentaticketArticulo');
+    }
+    public function articulo_taxes()
+    {
+        return $this->hasMany(ArticuloTax::class);
     }
     public function retention_rules()
     {
@@ -127,7 +139,6 @@ class Ventaticket extends Model
     //relacion uno a muchos polimorfica
     public function histories()
     {
-
         return $this->morphMany('App\Models\History', 'historiable');
     }
     function registerArticulo(ProductArticuloVenta $product)
@@ -137,7 +148,19 @@ class Ventaticket extends Model
         if (!$product->enuffInventario($this->getAlmacen())) {
             throw new OperationalException("No hay suficiente inventario", 422);
         }
-        $articulo = $this->createArticulo($product);
+        $por_descuento = null;
+
+        if ($yaExisteArticulo) {
+            $articulo = $this->getArticuloByProductId($product->id);
+
+            $articulo->precio_usado = $product->precio;
+            //calculate base impositiva
+            $articulo->cantidad += $product->cantidad;
+            // weird take a look
+            // $product->cantidad = $articulo->cantidad;
+        } else {
+            $articulo = $this->createArticulo($product);
+        }
 
         //calculate base impositiva
         $articulo->setPrecioBase();
@@ -148,8 +171,7 @@ class Ventaticket extends Model
         $articulo->setTaxes();
 
         $articulo->save();
-        //todo:quitar
-        // $articulo->incrementInventario(-$product->cantidad);
+        $articulo->incrementInventario(-$product->cantidad);
     }
     public function yaExisteArticuloEnTicket($product)
     {
@@ -168,10 +190,6 @@ class Ventaticket extends Model
         $articulo->product_name = $product->product->name;
         $articulo->departamento_id = null;
         $articulo->cantidad = $product->cantidad;
-        $articulo->ancho = $product->ancho;
-        $articulo->alto = $product->alto;
-        $articulo->area = $product->ancho * $product->alto;
-        $articulo->area_total = $articulo->area * $product->cantidad;
         $articulo->ganancia = $ganancia;
         $articulo->pagado_en = null;
         $articulo->importe_descuento = 0;
@@ -213,27 +231,6 @@ class Ventaticket extends Model
     public function getAlmacen()
     {
         return $this->almacen_id;
-    }
-    function checkArticulosEnoughInventory()
-    {
-        $notEnoughInventory = [];
-        foreach ($this->ventaticket_articulos as $articulo) {
-            if (!$articulo->enuffInventario()) {
-                $notEnoughInventory[] = $articulo->product->name;
-            }
-        }
-        return $notEnoughInventory;
-    }
-    function decrementArticulos()
-    {
-        foreach ($this->ventaticket_articulos as $articulo) {
-            if ($articulo->usaMedidas()) {
-                $cantidad =  $articulo->area_total;
-            } else {
-                $cantidad = $articulo->cantidad;
-            }
-            $articulo->incrementInventario(-$cantidad);
-        }
     }
     private function facturaValidations($clavePrivadaLocal, $esPublicoEnGeneral)
     {
@@ -385,13 +382,14 @@ class Ventaticket extends Model
             $nombre_receptor,
             $facturas_relacionadas
         );
+        // logger($xml);
 
         $jsonPath = 'facturaTmp/XmlDesdePhpSinTimbrar.xml';
         Storage::disk('local')->put($jsonPath, $xml);
 
-        $preFactura->callServie();
+        $preFactura->callServie($jsonPath);
 
-        $pdfFacturaPath = "pdf_factura/$user->organization_id/" . $preFactura->ventaticket_id;
+        $pdfFacturaPath = "pdf_factura/$user->active_organization_id/" . $preFactura->ventaticket_id;
         /* create pdf */
         $fService = new FacturaService;
         $fService->storePdf('facturaTmp/XmlDesdePhpTimbrado.xml', $user, $pdfFacturaPath);
@@ -447,25 +445,75 @@ class Ventaticket extends Model
 
         return $ticketText;
     }
-    public function generatePublicTicket()
+    function checkAllExistingProducts()
     {
-        $venta = $this;
-        $token = Str::uuid()->toString(); // o Str::random(40)
-
-
-        return PublicTicketLink::create([
-            'ventaticket_id' => $venta->id,
-            'token' => $token,
-            'expires_at' => now()->addDays(15),
-        ]);
+        foreach ($this->ventaticket_articulos as $articulo) {
+            if (!$articulo->product_id) {
+                throw new OperationalException("En el ticket hay productos actualmente eliminados, limpia primero", 1);
+            }
+        }
+    }
+    public function getSubTotal()
+    {
+        return $subTotal = $this->ventaticket_articulos->sum('precio_final');
+    }
+    public function getTotal()
+    {
+        $subTotal = $this->ventaticket_articulos->sum('precio_final');
+        $descuentos = $this->ventaticket_articulos->sum('importe_descuento');
+        $impuestoTraslado = $this->ventaticket_articulos->sum('impuesto_traslado');
+        $impuestoRetenido = $this->ventaticket_articulos->sum('impuesto_retenido');
+        return  $subTotal - $descuentos + $impuestoTraslado - $impuestoRetenido;
+    }
+    public function getDescuento()
+    {
+        return $this->descuento = $this->ventaticket_articulos->sum('importe_descuento');
+    }
+    public function getGanancia()
+    {
+        return $this->ganancia = $this->ventaticket_articulos->sum('ganancia');
     }
 
-    protected function publicUrl(): Attribute
+    public function getImpuestos($type = 'traslado')
     {
-        return Attribute::make(
-            get: fn() => $this->public_ticket_link
-                ? config('app.spa_url') . '/ticket/' . $this->public_ticket_link->token
-                : null
-        );
+        if ($type == 'traslado') {
+            return $this->ventaticket_articulos->sum('impuesto_traslado');
+        }
+        return $this->ventaticket_articulos->sum('impuesto_retenido');
+    }
+    public function setPagoCon($value)
+    {
+        $this->fp_efectivo = $value['efectivo'];
+        $this->fp_efectivo_ref = $value['efectivo_ref'];
+        $this->fp_tarjeta_debito = $value['tarjeta_debito'];
+        $this->fp_tarjeta_debito_ref = $value['tarjeta_debito_ref'];
+        $this->fp_tarjeta_credito = $value['tarjeta_credito'];
+        $this->fp_tarjeta_credito_ref = $value['tarjeta_credito_ref'];
+        $this->fp_transferencia = $value['transferencia'];
+        $this->fp_transferencia_ref = $value['transferencia_ref'];
+        $this->fp_cheque = $value['cheque'];
+        $this->fp_cheque_ref = $value['cheque_ref'];
+        $this->fp_vales_de_despensa = $value['vales_de_despensa'];
+        $this->fp_vales_de_despensa_ref = $value['vales_de_despensa_ref'];
+        $this->pago_con = $value['pago_con'];
+    }
+    function hasOrder()
+    {
+        return !!$this->getCartId();
+    }
+    function notifyTienda()
+    {
+        if (!$this->hasOrder()) return;
+        $http = new TiendaHttp;
+        $cartId = $this->getCartId();
+        $path = "/api/cart/$cartId/notify";
+        $data = [
+            'venta' => $this->toArray(),
+        ];
+        return $http->apiRequest('post', $path, $data);
+    }
+    function getCartId()
+    {
+        return $this->cotizacion?->cart_id;
     }
 }

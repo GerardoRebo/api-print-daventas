@@ -3,10 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Model;
 use App\Exceptions\OperationalException;
 use App\MyClasses\Factura\FacturaService;
+use App\Services\Cfdi\CfdiUtilsPagoBuilder;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
@@ -82,7 +83,7 @@ class Abono extends Model
 
         $this->callServie($jsonPath, $jsonPath);
 
-        $pdfFacturaPath = "pdf_factura_pagos/$user->organization_id/" . $this->deuda->ventaticket_id;
+        $pdfFacturaPath = "pdf_factura_pagos/$user->active_organization_id/" . $this->deuda->ventaticket_id;
         /* create pdf */
         $fService = new FacturaService;
         $fService->storePdf('facturaTmp/XmlDesdePhpTimbrado.xml', $user, $pdfFacturaPath);
@@ -122,7 +123,7 @@ class Abono extends Model
             throw new OperationalException($result->output(), 1);
         }
         $idForPath = $this->id;
-        $xmlFacturaPath = "xml_factura_pagos/$user->organization_id/$idForPath";
+        $xmlFacturaPath = "xml_factura_pagos/$user->active_organization_id/$idForPath";
         if (app()->isProduction()) {
             try {
                 Storage::disk('local')->delete($facturaData['cer_path']);
@@ -151,7 +152,7 @@ class Abono extends Model
     function consumeTimbre($cantidad)
     {
         $user = $this->deuda->ventaticket->user;
-        $saldoSystem = $user->organization->latestSystemFolio;
+        $saldoSystem = $user->getActiveOrganization()->latestSystemFolio;
         $saldoSystemScalar = $saldoSystem?->saldo ?? 0;
         if ($saldoSystemScalar) {
             $this->system_folios()->create([
@@ -163,7 +164,7 @@ class Abono extends Model
             return;
         }
 
-        $saldo = $user->organization->latestFoliosUtilizado;
+        $saldo = $user->getActiveOrganization()->latestFoliosUtilizado;
         $saldoScalar = $saldo?->saldo ?? 0;
         if (!$saldoScalar) {
             throw new OperationalException("No cuentas con suficientes timbres fiscales, , contacta con la administración para solicitar timbres fiscales", 1);
