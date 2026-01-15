@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\AlmacenController;
-use App\Http\Controllers\ArticuloImageController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CodigoController;
 use App\Http\Controllers\ConceptoController;
@@ -12,24 +11,24 @@ use App\Http\Controllers\DepartamentoController;
 use App\Http\Controllers\DevolucionController;
 use App\Http\Controllers\ExcelFileController;
 use App\Http\Controllers\GastoController;
+use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\LoginController;
+use App\Http\Controllers\MercadoPagoController;
 use App\Http\Controllers\MovimientoController;
 use App\Http\Controllers\OrganizacionController;
+use App\Http\Controllers\OrganizationContextController;
+use App\Http\Controllers\PlanController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImageController;
-use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\ProductTaxController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\PuntoVentaController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\RetentionRulesController;
 use App\Http\Controllers\TaxController;
-use App\Http\Controllers\TelegramConfigController;
-use App\Http\Controllers\TiendaController;
 use App\Http\Controllers\TiendaOrderController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\WhaSessionController;
-use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\UserCuentaController;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
@@ -50,12 +49,22 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::post('/register', [RegisterController::class, 'register'])->name('auth.register');
+Route::post('/updateLead', [RegisterController::class, 'updateLead'])->name('auth.updateLead');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth:sanctum');
+
+Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
+Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
+Route::post('/mercadopago/webhook', [MercadoPagoController::class, 'webhook']);
+Route::get('/plans', [PlanController::class, 'index']);
+
 
 Route::post('/email/verification-notification', function (Request $request) {
     return $request->user()->sendEmailVerificationNotification();
 })->middleware(['auth:sanctum', 'throttle:6,1'])->name('verification.send');
+Route::get('/email/getMyEmail', function (Request $request) {
+    return $request->user()->email;
+})->middleware(['auth:sanctum', 'throttle:6,1'])->name('verification.getMyEmail');
 Route::post('/forgot-password', function (Request $request) {
     $request->validate(['email' => 'required|email']);
 
@@ -91,9 +100,17 @@ Route::post('/reset-password', function (Request $request) {
         ? response()->json('status', __($status))
         : response()->json(['email' => [__($status)]]);
 })->middleware('guest')->name('password.update');
-Route::get('/ticket-publico/{token}', [PuntoVentaController::class, "ticketPublic"])->name('ticket.public');
 
-Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
+
+    // Organization Context Management
+    Route::controller(OrganizationContextController::class)->prefix('organization-context')->name('organization-context.')->group(function () {
+        Route::get('/current', 'current')->name('current');
+        Route::get('/list', 'list')->name('list');
+        Route::post('/switch', 'switch')->name('switch');
+        Route::post('/create', 'create')->name('create');
+        Route::get('/{organizationId}', 'show')->name('show');
+    });
 
     // Route::controller(WhaSessionController::class)->prefix('wha_session')->name('session.')->group(function () {
     //     Route::get('/status/{sessionId}', 'getStatus')->name('getStatus');
@@ -121,6 +138,11 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/searchTimezones', 'searchTimezones')->name('searchTimezones');
         Route::post('/setTimezone', 'setTimezone')->name('setTimezone');
         Route::post('/updateFeature', 'updateFeature')->name('updateFeature');
+        Route::get('/distribuidor_info', 'distribuidorInfo')->name('distribuidorInfo');
+    });
+    Route::controller(UserCuentaController::class)->prefix('cuentas')->name('users.cuentas.')->group(function () {
+        Route::post('', 'store')->name('store');
+        Route::put('/{cuenta}', 'update')->name('update');
     });
     Route::controller(CodigoController::class)->prefix('codigos')->name('codigos.')->group(function () {
         Route::post('/eliminar', 'eliminar')->name('eliminar');
@@ -164,9 +186,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/misventas', 'misventas')->name('misventas');
         Route::get('/setpendiente', 'setpendiente')->name('setpendiente');
         Route::get('/pendientes', 'pendientes')->name('pendientes');
+        // Route::post('/register', 'register')->name('register')->middleware([EnsureUserIsActive::class]);
         Route::post('/register', 'register')->name('register');
         Route::get('/ventaticket', 'getVT')->name('getVT');
-        Route::post('/updateFechaEntrega', 'updateFechaEntrega')->name('updateFechaEntrega');
         Route::post('/destroyarticulo', 'destroyarticulo')->name('destroyarticulo');
         Route::post('/update', 'update')->name('update');
         Route::post('/guardarventa', 'guardarventa')->name('guardarventa');
@@ -184,21 +206,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/sendEmail/{ticket}', 'sendEmail')->name('sendEmail');
         Route::get('/descargarXml/{ticket}', 'descargarXml')->name('descargarXml');
         Route::get('/descargarPdf/{ticket}', 'descargarPdf')->name('descargarPdf');
-        Route::put('/articulo/{articulo}/description', 'updateDescription')->name('updateDescription');
-    });
-    Route::controller(ArticuloImageController::class)->prefix('articulos')->name('articulos.')->group(function () {
-        Route::get('/{articulo}/files', 'index')->name('index');
-        Route::post('/{articulo}/files', 'attachFiles')->name('attachFiles');
-        Route::get('files/{file}/download', 'download')->name('download');
-        Route::delete('_files/{file}', 'articuloFilesDelete')->name('files.delete');
-        Route::post('files/{file}/animate', 'animate')->name('animate');
-        Route::post('files/{file}/checkStatusAnimations', 'checkStatusAnimations')->name('checkStatusAnimations');
-    });
-    Route::controller(ArticuloImageController::class)->prefix('articulos_files')->name('articulos_files.')->group(function () {
-        Route::delete('{articuloFile}', 'articuloFilesDelete')->name('files.delete');
+        Route::get('/regenerarPdf/{ticket}', 'regenerarPdf')->name('regenerarPdf');
     });
     Route::controller(CotizacionController::class)->prefix('cotizacion')->name('cotizacion.')->group(function () {
-
         Route::get('/', 'getVT')->name('getVT');
         Route::post('/sendVentaToWha/{ticket}', 'sendVentaToWha')->name('sendVentaToWha');
         Route::post('/archivar/{cotizacionId}', 'archivar')->name('archivar');
@@ -228,9 +238,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/mismovimientos', 'mismovimientos')->name('mismovimientos');
         Route::get('/setpendiente', 'setpendiente')->name('setpendiente');
         Route::post('/setproveedor', 'setproveedor')->name('setproveedor');
+        Route::post('/updateFolioFactura', 'updateFolioFactura')->name('updateFolioFactura');
         Route::post('/setmovimiento', 'setmovimiento')->name('setmovimiento');
         Route::get('/pendientes', 'pendientes')->name('pendientes');
-        Route::post('/updateFolioFactura', 'updateFolioFactura')->name('updateFolioFactura');
         Route::post('/register', 'register')->name('register');
         Route::get('/movimiento', 'getVT')->name('ventaticket');
         Route::post('/destroyarticulo', 'destroyarticulo')->name('destroyarticulo');
@@ -244,11 +254,6 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/cancelarmovimiento', 'cancelarmovimiento')->name('cancelarmovimiento');
         Route::post('/cambiaprecio', 'cambiaprecio')->name('cambiaprecio');
     });
-    Route::controller(ProductionOrderController::class)->prefix('production_orders')->name('production_orders.')->group(function () {
-        Route::get('', 'index')->name('index');
-        Route::put('{productionOrder}', 'update')->name('update');
-        Route::post('{productionOrder}/storeConsumibleGenerico', 'storeConsumibleGenerico')->name('storeConsumibleGenerico');
-    });
     Route::controller(ProductController::class)->prefix('products')->name('products.')->group(function () {
 
         Route::get('/search/{keyword?}/{almacenActualId?}/{departamentoActualId?}/{proveedorActualId?}/{bajostock?}/{prioritario?}/{todos?}', 'search')->name('search');
@@ -257,13 +262,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/historialPrecio', 'historialPrecio')->name('historialPrecio');
         Route::get('/historialCosto', 'historialCosto')->name('historialCosto');
         Route::get('/searchkeywordsimple', 'searchkeywordsimple')->name('searchkeywordsimple');
-        Route::get('/searchconsumiblekeywordsimple', 'searchconsumiblekeywordsimple')->name('searchconsumiblekeywordsimple');
         Route::get('/agregarcomponente', 'agregarcomponente')->name('agregarcomponente');
-        Route::post('/agregarconsumible', 'agregarconsumible')->name('agregarconsumible');
         Route::get('/eliminarComponente', 'eliminarComponente')->name('eliminarComponente');
-        Route::get('/eliminarConsumible', 'eliminarConsumible')->name('eliminarConsumible');
         Route::get('/getcomponents', 'getcomponents')->name('getcomponents');
-        Route::get('/getconsumibles', 'getconsumibles')->name('getconsumibles');
         Route::get('/showextend/{product}/{almacenActualId}', 'showextend')->name('showextend');
         Route::get('/showextended/{product}', 'showextended')->name('showextended');
         Route::get('/searchcode', 'searchcode')->name('searchcode');
@@ -293,9 +294,6 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/{product}/taxes/{tax}', [ProductTaxController::class, 'store']);
         Route::delete('/{productId}/taxes/{taxId}', [ProductTaxController::class, 'delete']);
         Route::put('/taxes/{productTax}', [ProductTaxController::class, 'update']);
-
-        // Route::get('/agregard/{impuestoActualId}/{productoActualId}', 'agregard')->name('agregard');
-        // Route::get('/quitarD/{departamentoActualId}/{productoActualId}', 'quitarD')->name('quitarD');
     });
 
     Route::controller(ProveedorController::class)->prefix('proveedors')->name('proveedors.')->group(function () {
@@ -309,6 +307,10 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::controller(OrganizacionController::class)->prefix('organizacions')->name('organizacions.')->group(function () {
         Route::get('/global', 'global')->name('global');
         Route::get('/foliosSaldo', 'foliosSaldo')->name('foliosSaldo');
+        Route::get('/myOrganization', 'myOrganization')->name('myOrganization');
+        Route::get('/facturacionData', 'facturacionData')->name('facturacionData');
+        Route::post('/buypacket', 'buypacket')->name('buypacket');
+        Route::post('/pay_subscription', 'paySubscription')->name('paySubscription');
         Route::get('/facturas_globales', 'getFacturasGlobales')->name('facturas_globales.index');
         Route::delete('/facturas_globales/{factura}', 'deleteFacturasGlobales')->name('facturas_globales.delete');
         Route::get('/facturas_globales/{facturaId}', 'facturasGlobalesShow')->name('facturas_globales.show');
@@ -321,6 +323,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/searchAlmacen/{keywordAlmacen?}', 'searchAlmacen')->name('searchAlmacen');
         Route::get('/misusers', 'misusers')->name('misuser');
         Route::get('/organizationUsers', 'organizationUsers')->name('organizationUsers');
+        Route::post('/assignUserRole', 'assignUserRoleInOrganization')->name('assignUserRole');
         Route::get('/misalmacens', 'misalmacens')->name('misalmacens');
         Route::get('/getInfo', 'getInfo')->name('getInfo');
         // Route::get('/registeruser', 'registeruser')->name('registeruser');
@@ -344,7 +347,10 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/uploadCer', 'uploadCer')->name('uploadCer');
         Route::post('/uploadKey', 'uploadKey')->name('uploadKey');
         Route::post('/uploadLogo', 'uploadLogo')->name('uploadLogo');
-        Route::post('/desvincularUser', 'desvincularUser')->name('desvincularUser');
+        // Route::post('/toggleUser', 'toggleUser')->name('toggleUser')->middleware([CheckPlanLimits::class]);
+        Route::post('/toggleUser', 'toggleUser')->name('toggleUser');
+        Route::post('/toggleAlmacen', 'toggleAlmacen')->name('toggleAlmacen');
+        // Route::post('/toggleAlmacen', 'toggleAlmacen')->name('toggleAlmacen')->middleware([CheckPlanLimits::class]);
         Route::get('/getin', 'getin')->name('getin');
         Route::get('/registeralmacen', 'registeralmacen')->name('registeralmacen');
         Route::get('/detachuser', 'detachuser')->name('detachuser');
@@ -357,6 +363,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::get('/gettabulares', 'gettabulares')->name('gettabulares');
         Route::post('/destroyInvitation', 'destroyInvitation')->name('destroyInvitation');
         Route::post('/enviarsolicitud', 'enviarsolicitud')->name('enviarsolicitud');
+        Route::post('/invitations/{invitationId}/accept', 'aceptarInvitacion')->name('aceptarInvitacion');
+        Route::post('/invitations/{invitationId}/decline', 'rechazarInvitacion')->name('rechazarInvitacion');
+        Route::get('/misSolicitudes', 'misSolicitudes')->name('misSolicitudes');
         Route::get('/configurations', 'configurations')->name('configurations');
         Route::post('/eliminaPrueba', 'eliminaPrueba')->name('eliminaPrueba');
         Route::get('/descargarXml/{ticket}', 'descargarXml')->name('descargarXml');
@@ -401,7 +410,6 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::apiResource('retention_rules', RetentionRulesController::class);
 
     Route::controller(CorteController::class)->prefix('cortes')->name('cortes.')->group(function () {
-
         Route::get('/habilitarcaja', 'habilitarcaja')->name('habilitarcaja');
         Route::get('/getturnoactual', 'getturnoactual')->name('getturnoactual');
         Route::get('/getMisCortes', 'getMisCortes')->name('getMisCortes');
@@ -427,14 +435,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         Route::post('/facturarabono/{abono}', 'facturarabono')->name('facturarabono');
         Route::get('/getabonos', 'getabonos')->name('getabonos');
         Route::get('/getsaldo', 'getsaldo')->name('getsaldo');
-    });
-    Route::controller(TelegramConfigController::class)->prefix('telegram')->name('telegram.')->group(function () {
-        Route::get('', 'index')->name('index');
-        Route::post('', 'store')->name('store');
-        Route::get('/{telegramConfig}', 'show')->name('show');
-        Route::put('/{telegramConfig}', 'update')->name('update');
-        Route::delete('/{telegramConfig}', 'destroy')->name('destroy');
-        Route::post('/{telegramConfig}/test', 'testMessage')->name('test');
+        Route::get('/downloadPdf/{abono}', 'downloadPdf')->name('downloadPdf');
+        Route::get('/downloadXml/{abono}', 'downloadXml')->name('downloadXml');
     });
 });
 Route::middleware('auth.shop_tienda')->prefix('tienda/')->name('tienda.')->group(function () {
@@ -442,5 +444,3 @@ Route::middleware('auth.shop_tienda')->prefix('tienda/')->name('tienda.')->group
         Route::post('/', [TiendaOrderController::class, 'store']);
     });
 });
-
-Route::post('/webhook', [WebhookController::class, 'handle']);

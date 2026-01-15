@@ -5,13 +5,9 @@ use App\Http\Requests\EmailVerificationRequest;
 use App\Models\Devolucione;
 use App\Models\Invitation;
 use App\Models\OrdenCompra;
-use App\Models\Product;
 use App\Models\User;
 use App\Models\Ventaticket;
-use App\Pdf\Translators\PlatesHtmlTranslator;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,14 +50,33 @@ Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $requ
     }
     return redirect('email_verified');
 })->middleware(['signed'])->name('verification.verify');
-Route::get('/email/organization_request/{id}/{orgId}', function () {
-    $user = User::findOrFail(request('id'));
-    $invitation = Invitation::where('user_id', $user->id)->first();
-    if (!$invitation) return;
-    $invitation->respondida = 1;
-    $invitation->save();
-    $user->organization_id = request('orgId');
-    $user->save();
+Route::get('/email/organization_request/{invitationId}', function () {
+    // Find invitation by ID
+    $invitation = Invitation::findOrFail(request('invitationId'));
+
+    // Verify invitation hasn't been answered already
+    if ($invitation->respondida) {
+        return redirect('email_verified')->with('message', 'Esta invitación ya ha sido procesada');
+    }
+
+    $user = $invitation->user;
+    $orgId = $invitation->organization_id;
+
+    // Mark invitation as responded
+    $invitation->update(['respondida' => 1]);
+
+    // Attach user to organization via M:M relationship if not already attached
+    if (!$user->belongsToOrganization($orgId)) {
+        $user->organizations()->attach($orgId, [
+            'shard_id' => 1,
+            'shard_connection' => 'mysql',
+            'assigned_by' => null,
+            'assigned_at' => now(),
+            'active' => true,
+            'role_name' => 'Cajero' // Default role
+        ]);
+    }
+
     return redirect('email_verified');
 })->middleware(['signed'])->name('organization.request');
 
@@ -75,36 +90,17 @@ Route::get('movimientos/imprimir/{movimiento}/{pagocon?}', function (OrdenCompra
     return view('movimientoimprimir', compact('movimiento', 'pagocon'));
 })->name('movimientos.imprimir');
 
+
 Route::get('/', function () {
-    // // $cfdifile = 'datafiles/cfdi.xml';
-    // // $xml = file_get_contents($cfdifile);
-    // $xml = Storage::get('xml_factura/129/467959.xml');
-
-    // // clean cfdi
-    // $xml = \PhpCfdi\CfdiCleaner\Cleaner::staticClean($xml);
-
-    // // create the main node structure
-    // $comprobante = \CfdiUtils\Nodes\XmlNodeUtils::nodeFromXmlString($xml);
-
-    // // create the CfdiData object, it contains all the required information
-    // $cfdiData = (new \PhpCfdi\CfdiToPdf\CfdiDataBuilder())
-    //     ->build($comprobante);
-
-    // // create the converter
-    // $user = User::with('organization.image')->find(8);
-
-    // $htmlTranslator = new PlatesHtmlTranslator(
-    //     base_path('app/Pdf/Templates'),
-    //     'generic',
-    //     $user
-    // );
-    // $converter = new \PhpCfdi\CfdiToPdf\Converter(
-    //     new \PhpCfdi\CfdiToPdf\Builders\Html2PdfBuilder($htmlTranslator)
-    // );
-
-    // // create the invoice as output.pdf
-    // $converter->createPdfAs($cfdiData, Storage::path('/myPdfs/pdf.pdf'));
-    // return response()->file(Storage::path('/myPdfs/pdf.pdf'));
+    // $organizations = Organization::all();
+    // foreach ($organizations as $organization) {
+    //     $organization->assignDefaultPlan();
+    // }
+    // $planPrice = PlanPrice::find(6);
+    // $organizations = Organization::whereIn('id', [1, 113, 129])->get();
+    // foreach ($organizations as $organization) {
+    //     $organization->assignPlan($planPrice);
+    // }
 });
 
 Route::get('/excelfile/reports/', [ExcelFileController::class, 'downloadReport'])->name('excelfile.downloadReport');
