@@ -254,6 +254,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/cancelarmovimiento', 'cancelarmovimiento')->name('cancelarmovimiento');
         Route::post('/cambiaprecio', 'cambiaprecio')->name('cambiaprecio');
     });
+    Route::controller(ProductionOrderController::class)->prefix('production_orders')->name('production_orders.')->group(function () {
+        Route::get('', 'index')->name('index');
+        Route::put('{productionOrder}', 'update')->name('update');
+        Route::post('{productionOrder}/storeConsumibleGenerico', 'storeConsumibleGenerico')->name('storeConsumibleGenerico');
+    });
     Route::controller(ProductController::class)->prefix('products')->name('products.')->group(function () {
 
         Route::get('/search/{keyword?}/{almacenActualId?}/{departamentoActualId?}/{proveedorActualId?}/{bajostock?}/{prioritario?}/{todos?}', 'search')->name('search');
