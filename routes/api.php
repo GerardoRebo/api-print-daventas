@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AlmacenController;
+use App\Http\Controllers\ArticuloImageController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CodigoController;
 use App\Http\Controllers\ConceptoController;
@@ -208,6 +209,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/descargarXml/{ticket}', 'descargarXml')->name('descargarXml');
         Route::get('/descargarPdf/{ticket}', 'descargarPdf')->name('descargarPdf');
         Route::get('/regenerarPdf/{ticket}', 'regenerarPdf')->name('regenerarPdf');
+    });
+    Route::controller(ArticuloImageController::class)->prefix('articulos')->name('articulos.')->group(function () {
+        Route::get('/{articulo}/files', 'index')->name('index');
+        Route::post('/{articulo}/files', 'attachFiles')->name('attachFiles');
+        Route::get('files/{file}/download', 'download')->name('download');
+        Route::delete('_files/{file}', 'articuloFilesDelete')->name('files.delete');
+        Route::post('files/{file}/animate', 'animate')->name('animate');
+        Route::post('files/{file}/checkStatusAnimations', 'checkStatusAnimations')->name('checkStatusAnimations');
+    });
+    Route::controller(ArticuloImageController::class)->prefix('articulos_files')->name('articulos_files.')->group(function () {
+        Route::delete('{articuloFile}', 'articuloFilesDelete')->name('files.delete');
     });
     Route::controller(CotizacionController::class)->prefix('cotizacion')->name('cotizacion.')->group(function () {
         Route::get('/', 'getVT')->name('getVT');
