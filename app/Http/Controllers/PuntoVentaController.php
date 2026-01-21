@@ -589,7 +589,7 @@ class PuntoVentaController extends Controller
             Storage::disk('local')->path($pathPfx),
             Crypt::decryptString($clavePfx),
             $motivo,
-            $sustitucion,
+            $sustitucion ?? '*',
             app()->isLocal() ? 'true' : 'false'
         ];
         $command = implode(' ', $command);
