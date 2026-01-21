@@ -22,6 +22,7 @@ use DateInterval;
 use DateTime;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Process;
@@ -580,13 +581,13 @@ class PuntoVentaController extends Controller
         $command = [
             'dotnet',
             'facturacion.dll',
-            'verificar',
+            'cancelar',
             $uuid,
             $total,
             $rfcEmisor,
             $rfcReceptor,
             Storage::disk('local')->path($pathPfx),
-            $clavePfx,
+            Crypt::decryptString($clavePfx),
             $motivo,
             $sustitucion,
             app()->isLocal() ? 'true' : 'false'
@@ -594,6 +595,7 @@ class PuntoVentaController extends Controller
         $command = implode(' ', $command);
         $result = Process::path(base_path() . '/factura_cancelacion')
             ->run($command);
+        logger($result->output());
         if (app()->isProduction()) {
             Storage::disk('local')->delete($pathPfx);
         }
