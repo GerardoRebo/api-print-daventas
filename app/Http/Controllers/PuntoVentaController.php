@@ -632,6 +632,7 @@ class PuntoVentaController extends Controller
             logger($result->output());
             throw new OperationalException($result->output(), 1);
         }
+        logger($result->output());
         return [
             'output' => $result->output(),
         ];

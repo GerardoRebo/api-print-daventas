@@ -102,7 +102,7 @@ class PreFactura extends Model
         $result = Process::path(base_path() . '/net7.0')
             ->run($command);
 
-        logger($result->output());
+        // logger($result->output());
         if ($result->failed()) {
             logger($result->errorOutput());
             logger($result->output());

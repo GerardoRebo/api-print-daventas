@@ -57,7 +57,7 @@ if (! isset($catalogos) || ! ($catalogos instanceof \PhpCfdi\CfdiToPdf\Catalogs\
     }
 
     div.panel div.title {
-        background-color: #1867C0;
+        background-color: #3084f2;
         color: #ffffff;
         font-weight: bold;
         padding: 1mm 2mm;
@@ -73,9 +73,9 @@ if (! isset($catalogos) || ! ($catalogos instanceof \PhpCfdi\CfdiToPdf\Catalogs\
     }
 
     .main-table th {
-        background-color: #06162d;
+        background-color: #3084f2;
         color: #ffffff;
-        border: 1px solid;
+        border: 0px solid;
         padding: 2px;
         text-align: center;
     }
@@ -86,14 +86,14 @@ if (! isset($catalogos) || ! ($catalogos instanceof \PhpCfdi\CfdiToPdf\Catalogs\
 
     .total-left {
         text-align: left;
-        background-color: #ea580c;
+        background-color: #102540;
         padding: 4px;
         color: whitesmoke;
     }
 
     .total-right {
         text-align: right;
-        background-color: antiquewhite;
+        background-color: #F2F2F2;
         padding: 4px;
         border-bottom: 1px;
     }
@@ -231,7 +231,8 @@ if (! isset($catalogos) || ! ($catalogos instanceof \PhpCfdi\CfdiToPdf\Catalogs\
                         <td><?= $this->e($concepto['ClaveProdServ']) ?></td>
                         <td><?= wordwrap($this->e($concepto['Descripcion']), 22, '<br />') ?>
                             <?php if ('' !== $this->e($concepto['NoIdentificacion'])) : ?>
-                                <span style="word-wrap: break-word; display: inline-block;">No identificación: <?= $this->e($concepto['NoIdentificacion'] ?: '(ninguno)') ?></span>
+                                <br>
+                                <span style="word-wrap: break-word; display: inline-block; font-size: 8px;">No identificación: <?= wordwrap($this->e($concepto['NoIdentificacion']  ?: '(ninguno)'), 22, '<br />', true) ?></span>
                             <?php endif; ?>
                         </td>
                         <td>
@@ -239,28 +240,28 @@ if (! isset($catalogos) || ! ($catalogos instanceof \PhpCfdi\CfdiToPdf\Catalogs\
                                 <span><?= wordwrap($catalogos->catObjetoImp($concepto['ObjetoImp']), 10, '<br />') ?></span>
                             <?php endif; ?>
                         </td>
-                        <td><?= $this->e($concepto['ValorUnitario']) ?></td>
+                        <td><?= $this->e('$' . $concepto['ValorUnitario']) ?></td>
                         <td><?= $this->e($concepto['Descuento'] ?: '') ?></td>
                         <td>
-                            <strong>Traslado</strong>:
+                            <strong style="font-size: 10px;">Traslado:</strong>
                             <?php foreach ($conceptoTraslados as $impuesto) : ?>
-                                <p>
+                                <p style="font-size: 8px;">
                                     <?= $catalogos->catImpuesto($impuesto['Impuesto']) ?><br>
-                                    <?= wordwrap('Importe: ' . $this->e($impuesto['Importe']), 10, '<br />') ?>
+                                    <?= wordwrap('Importe: $' . $this->e($impuesto['Importe']), 10, '<br />') ?>
                                 </p>
                             <?php endforeach; ?>
 
                             <?php if ($conceptoRetenciones->count()) : ?>
-                                <strong>Retención</strong>:
+                                <strong style="font-size: 10px;">Retención</strong>:
                             <?php endif; ?>
                             <?php foreach ($conceptoRetenciones as $impuesto) : ?>
-                                <p>
+                                <p style="font-size: 8px;">
                                     <?= $catalogos->catImpuesto($impuesto['Impuesto']) ?><br>
-                                    <?= wordwrap('Importe: ' . $this->e($impuesto['Importe']), 10, '<br />') ?>
+                                    <?= wordwrap('Importe: $' . $this->e($impuesto['Importe']), 10, '<br />') ?>
                                 </p>
                             <?php endforeach; ?>
                         </td>
-                        <td><strong><?= $this->e($concepto['Importe']) ?></strong></td>
+                        <td><strong><?= $this->e('$' . $concepto['Importe']) ?></strong></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
