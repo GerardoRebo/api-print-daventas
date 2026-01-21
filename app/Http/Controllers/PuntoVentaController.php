@@ -593,6 +593,7 @@ class PuntoVentaController extends Controller
             app()->isLocal() ? 'true' : 'false'
         ];
         $command = implode(' ', $command);
+        return $command;
         $result = Process::path(base_path() . '/factura_cancelacion')
             ->run($command);
         logger($result->output());
