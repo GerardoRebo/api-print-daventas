@@ -594,7 +594,18 @@ class PuntoVentaController extends Controller
         ];
         $result = Process::path(base_path() . '/factura_cancelacion')
             ->run(implode(' ', $command));
-        logger($result->output());
+        // Extraer el estado de CFDI del output
+        $estadoCfdi = null;
+        if (preg_match('/Estado de CFDI:\s*(.+?)(?:\n|$)/', $result->output(), $matches)) {
+            $estadoCfdi = trim($matches[1]);
+        }
+
+        // Actualizar el estado en la base de datos
+        if ($estadoCfdi) {
+            $ticket->update([
+                'cfdi_cancellation_status' => $estadoCfdi,
+            ]);
+        }
         if (app()->isProduction()) {
             Storage::disk('local')->delete($pathPfx);
         }
@@ -633,7 +644,20 @@ class PuntoVentaController extends Controller
             logger($result->output());
             throw new OperationalException($result->output(), 1);
         }
-        logger($result->output());
+
+        // Extraer el estado de CFDI del output
+        $estadoCfdi = null;
+        if (preg_match('/Estado de CFDI:\s*(.+?)(?:\n|$)/', $result->output(), $matches)) {
+            $estadoCfdi = trim($matches[1]);
+        }
+
+        // Actualizar el estado en la base de datos
+        if ($estadoCfdi) {
+            $ticket->update([
+                'cfdi_cancellation_status' => $estadoCfdi,
+            ]);
+        }
+
         return [
             'output' => $result->output(),
         ];
