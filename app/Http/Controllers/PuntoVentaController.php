@@ -619,11 +619,11 @@ class PuntoVentaController extends Controller
             'dotnet',
             'facturacion.dll',
             'verificar',
-            $uuid,
-            $total,
-            $rfcEmisor,
-            $rfcReceptor,
-            app()->isLocal() ? 'true' : 'false'
+            escapeshellarg($uuid),
+            escapeshellarg($total),
+            escapeshellarg($rfcEmisor),
+            escapeshellarg($rfcReceptor),
+            escapeshellarg(app()->isLocal() ? 'true' : 'false')
         ];
         $command = implode(' ', $command);
         $result = Process::path(base_path() . '/factura_cancelacion')
