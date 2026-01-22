@@ -578,21 +578,22 @@ class PuntoVentaController extends Controller
             $fileContent = Storage::disk('s3')->get($pathPfx);
             Storage::disk('local')->put($pathPfx, $fileContent);
         }
+        $command = [
+            'dotnet',
+            'facturacion.dll',
+            'cancelar',
+            escapeshellarg($uuid),
+            escapeshellarg($total),
+            escapeshellarg($rfcEmisor),
+            escapeshellarg($rfcReceptor),
+            escapeshellarg(Storage::disk('local')->path($pathPfx)),
+            escapeshellarg(Crypt::decryptString($clavePfx)),
+            escapeshellarg($motivo),
+            escapeshellarg($sustitucion ?? '*'),
+            escapeshellarg(app()->isLocal() ? 'true' : 'false')
+        ];
         $result = Process::path(base_path() . '/factura_cancelacion')
-            ->command('dotnet', [
-                'facturacion.dll',
-                'cancelar',
-                $uuid,
-                $total,
-                $rfcEmisor,
-                $rfcReceptor,
-                Storage::disk('local')->path($pathPfx),
-                Crypt::decryptString($clavePfx),
-                $motivo,
-                $sustitucion ?? '*',
-                app()->isLocal() ? 'true' : 'false'
-            ])
-            ->run();
+            ->run(implode(' ', $command));
         logger($result->output());
         if (app()->isProduction()) {
             Storage::disk('local')->delete($pathPfx);
